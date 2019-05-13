@@ -5,6 +5,8 @@
 * https://github.com/nbrosowsky/tonejs-instruments
 */
 
+import Tone from 'tone';
+
 var SampleLibrary = {
     minify: false,
     ext: '.[mp3|ogg]', // use setExt to change the extensions on all files // do not change this variable //
@@ -35,7 +37,7 @@ var SampleLibrary = {
 
         // update extensions if arg given
         if (t.ext) {
-            if (t.ext != this.ext) {
+            if (t.ext !== this.ext) {
                 this.setExt(t.ext)
             }
             t.ext = this.ext
@@ -60,10 +62,10 @@ var SampleLibrary = {
                         minBy = 6
                     }
 
-                    var filtered = Object.keys(newT).filter(function (_, i) {
-                        return i % minBy != 0;
+                    var filtered = Object.keys(newT).filter((_, i) => {
+                        return i % minBy !== 0;
                     })
-                    filtered.forEach(function (f) {
+                    filtered.forEach((f) => {
                         delete newT[f]
                     })
 
@@ -101,14 +103,12 @@ var SampleLibrary = {
                 }
 
                 filtered = Object.keys(newT).filter(function (_, i) {
-                    return i % minBy != 0;
+                    return i % minBy !== 0;
                 })
                 filtered.forEach(function (f) {
                     delete newT[f]
                 })
             }
-
-
 
 
             var s = new Tone.Sampler(
@@ -644,3 +644,5 @@ var SampleLibrary = {
 
 
 }
+
+export default SampleLibrary;
