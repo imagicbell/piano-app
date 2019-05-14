@@ -7,7 +7,6 @@ class Piano extends React.Component {
   componentDidMount() {
     this.piano = SampleLibrary.load({
       instruments: "piano",
-      baseUrl: "/res/samples/",
       onload: () => {
         console.log("load piano finish!!!");
       }
