@@ -1,6 +1,7 @@
 //@flow
 import React from 'react';
 import SampleLibrary from 'libs/Tonejs-Instruments';
+import Keyboard from 'features/keyboard';
 
 class Piano extends React.Component {
 
@@ -16,7 +17,7 @@ class Piano extends React.Component {
   render() {
     return (
       <div>
-        
+        <Keyboard />
       </div>
     )
   }

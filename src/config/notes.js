@@ -1,6 +1,12 @@
 export const noteBaseUrl = '/res/samples/'
 
-export const notes = [
+export type NoteType = {
+  midi: number,
+  ansi: string,
+  type: string,
+}
+
+export const notes : NoteType[] = [
   {midi: 21, ansi: 'A0', type: 'white'},
   {midi: 22, ansi: 'A#0', type: 'black'},
   {midi: 23, ansi: 'B0', type: 'white'},
@@ -77,17 +83,17 @@ export const notes = [
   {midi: 94, ansi: 'A#6', type: 'black'},
   {midi: 95, ansi: 'B6', type: 'white'},
   {midi: 96, ansi: 'C7', type: 'white'},
-  {midi: 97, ansi: 'C#7', type: 'black'},
-  {midi: 98, ansi: 'D7', type: 'white'},
-  {midi: 99, ansi: 'D#7', type: 'black'},
-  {midi: 100, ansi: 'E7', type: 'white'},
-  {midi: 101, ansi: 'F7', type: 'white'},
-  {midi: 102, ansi: 'F#7', type: 'black'},
-  {midi: 103, ansi: 'G7', type: 'white'},
-  {midi: 104, ansi: 'G#7', type: 'black'},
-  {midi: 105, ansi: 'A7', type: 'white'},
-  {midi: 106, ansi: 'A#7', type: 'black'},
-  {midi: 107, ansi: 'B7', type: 'white'},
-  {midi: 108, ansi: 'C8', type: 'white'},
+  // {midi: 97, ansi: 'C#7', type: 'black'},
+  // {midi: 98, ansi: 'D7', type: 'white'},
+  // {midi: 99, ansi: 'D#7', type: 'black'},
+  // {midi: 100, ansi: 'E7', type: 'white'},
+  // {midi: 101, ansi: 'F7', type: 'white'},
+  // {midi: 102, ansi: 'F#7', type: 'black'},
+  // {midi: 103, ansi: 'G7', type: 'white'},
+  // {midi: 104, ansi: 'G#7', type: 'black'},
+  // {midi: 105, ansi: 'A7', type: 'white'},
+  // {midi: 106, ansi: 'A#7', type: 'black'},
+  // {midi: 107, ansi: 'B7', type: 'white'},
+  // {midi: 108, ansi: 'C8', type: 'white'},
 ]
 
