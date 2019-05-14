@@ -5,6 +5,7 @@ import { type NoteType, notes } from 'config/notes';
 
 type KeyboardProps = {
   playKey: (note: string) => void,
+  stopKey: (note: string) => void,
 }
 
 class Keyboard extends React.Component<KeyboardProps> {
@@ -18,9 +19,12 @@ class Keyboard extends React.Component<KeyboardProps> {
     this.blackKeys = notes.filter(note => note.type === 'black');
   }
 
-  clickKey = (note: NoteType) => {
-    console.log('click key: ', note.ansi);
+  pressKey = (note: NoteType) => {
     this.props.playKey(note.ansi);
+  }
+
+  releaseKey = (note: NoteType) => {
+    this.props.stopKey(note.ansi);
   }
 
   render() {
@@ -28,14 +32,16 @@ class Keyboard extends React.Component<KeyboardProps> {
       <div className="keyboard-container">
         {
           this.whiteKeys.map(key => (
-            <div key={key.midi} className="key key-white" onClick={e => this.clickKey(key)}>
+            <div key={key.midi} className="key key-white" 
+                 onPointerDown={e => this.pressKey(key)} onPointerUp={e => this.releaseKey(key)}>
               {key.ansi}
             </div>
           ))
         }
         {
           this.blackKeys.map(key => (
-            <div key={key.midi} className="key key-black" onClick={e => this.clickKey(key)}>
+            <div key={key.midi} className="key key-black" 
+                 onPointerDown={e => this.pressKey(key)} onPointerUp={e => this.releaseKey(key)}>
               {key.ansi}
             </div>
           ))

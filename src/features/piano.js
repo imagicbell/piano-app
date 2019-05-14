@@ -4,6 +4,7 @@ import SampleLibrary from 'libs/Tonejs-Instruments';
 import Keyboard from 'features/keyboard';
 
 class Piano extends React.Component {
+  piano: any;  
 
   componentDidMount() {
     this.piano = SampleLibrary.load({
@@ -14,10 +15,20 @@ class Piano extends React.Component {
     }).toMaster();
   }
 
+  playNote = (note: string) => {
+    console.log('play note: ', note);
+    this.piano.triggerAttack(note);
+  }
+
+  stopNote = (note: string) => {
+    console.log('stop note: ', note);
+    this.piano.triggerRelease(note);
+  }
+
   render() {
     return (
       <div>
-        <Keyboard />
+        <Keyboard playKey={this.playNote} stopKey={this.stopNote}/>
       </div>
     )
   }
