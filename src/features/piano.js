@@ -22,7 +22,8 @@ class Piano extends React.Component {
 
   stopNote = (note: string) => {
     console.log('stop note: ', note);
-    this.piano.triggerRelease(note);
+    this.piano.triggerRelease(note, "+4n");
+    // this.piano.triggerRelease(note);
   }
 
   render() {
