@@ -1072,6 +1072,13 @@
     "@svgr/plugin-svgo" "^4.0.3"
     loader-utils "^1.1.0"
 
+"@tonejs/midi@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@tonejs/midi/-/midi-2.0.0.tgz#9be022ad148f146143109d083841ec3268ad5c04"
+  integrity sha512-I/6ErqMtccju7ZVkJPCsC1L4ARDP0H6tb5wy1KIsWQf2bp7sLBjxUIHp0ZV/1XXB5fZbA/XN2dfSaFg/Jl/Hww==
+  dependencies:
+    midi-file "^1.1.1"
+
 "@types/babel__core@^7.1.0":
   version "7.1.1"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.1.1.tgz#ce9a9e5d92b7031421e1d0d74ae59f572ba48be6"
@@ -5259,6 +5266,11 @@ micromatch@^3.1.10, micromatch@^3.1.4, micromatch@^3.1.8:
     regex-not "^1.0.0"
     snapdragon "^0.8.1"
     to-regex "^3.0.2"
+
+midi-file@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/midi-file/-/midi-file-1.1.1.tgz#eb82876a2a7ac83174170e27bf57d4e2c8816112"
+  integrity sha512-HI6Y/kc9g1Af0OqMkTzI2AeGgPJMONgQcd/13gBf8C9BcUh7wa/AnXR1Fgl8SIuO7GJmFhSIACEWcwiAz2E2Pg==
 
 miller-rabin@^4.0.0:
   version "4.0.1"

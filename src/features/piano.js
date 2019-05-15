@@ -26,6 +26,11 @@ class Piano extends React.Component {
     // this.piano.triggerRelease(note);
   }
 
+  playScheduleNote = (note: string, duration: string, time: string, velocity: number) => {
+    console.log(`play schedule note: ${note}, duration: ${duration}, time: ${time}, velocity: ${velocity}`);
+    this.piano.triggerAttackRelease(note, duration, time, velocity);
+  }
+
   render() {
     return (
       <div>
