@@ -3,7 +3,11 @@ import React from 'react';
 import SampleLibrary from 'libs/Tonejs-Instruments';
 import Keyboard from 'features/keyboard';
 
-class Piano extends React.Component {
+type PianoProps = {
+
+}
+
+class Piano extends React.Component<PianoProps> {
   piano: any;  
 
   componentDidMount() {
@@ -13,6 +17,10 @@ class Piano extends React.Component {
         console.log("load piano finish!!!");
       }
     }).toMaster();
+  }
+
+  componentWillUnmount() {
+    this.piano.dispose();
   }
 
   playNote = (note: string) => {
