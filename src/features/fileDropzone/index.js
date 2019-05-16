@@ -2,7 +2,7 @@ import React, {useCallback} from 'react';
 import {useDropzone} from 'react-dropzone';
 
 type FileDropzoneProps = {
-  onFilesDropped: File[] => void;
+  onDropFile: string => void;
 }
 
 const FileDropzone = (props: FileDropzoneProps) => {
@@ -10,18 +10,13 @@ const FileDropzone = (props: FileDropzoneProps) => {
     console.log("on drop files: ", acceptedFiles);
 
     const reader = new FileReader()
-
     reader.onabort = () => console.log('file reading was aborted')
     reader.onerror = () => console.log('file reading has failed')
     reader.onload = () => {
-      // Do whatever you want with the file contents
-      const binaryStr = reader.result
-      console.log(binaryStr)
+      props.onDropFile && props.onDropFile(reader.result);
     }
-
-    acceptedFiles.forEach(file => reader.readAsBinaryString(file))
-
-    props.onFilesDropped && props.onFilesDropped(acceptedFiles);
+    //only accept one file
+    reader.readAsArrayBuffer(acceptedFiles[0]);
   }, []);
 
   const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
