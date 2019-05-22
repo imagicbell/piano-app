@@ -8,20 +8,53 @@ type MidiplayerProps = {
 }
 
 type MidiplayerState = {
+  midi: Midi,
   midiUrl: String,
-  midiContent: String,
+  midiJson: String,
 }
 
 class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
   state: MidiplayerState = {
+    midi: null,
     midiUrl: '',
-    midiContent: '',
+    midiJson: ''
   }
 
-  playMidi = (midi: Midi) => {
+  onInputUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({
+      midiUrl: e.target.value,
+      midi: null,
+      midiJson: "Parsing midi file..."
+    });
+
+    Midi.fromUrl(this.state.midiUrl).then(midi => {
+      this.setState({
+        ...this.state,
+        midi,
+        midiJson: JSON.stringify(midi, undefined, 2),
+      });
+    });
+  }
+
+  onDropFile = (fileContent: String) => {
+    const midi = new Midi(fileContent);
+    this.setState({
+      midiUrl: '',
+      midi,
+      midiJson: JSON.stringify(midi, undefined, 2),
+    });
+  }
+
+  clickPlay = () => {
+    if (!this.state.midi) 
+      return;
+
+    const midi = this.state.midi;
     const now = Tone.now() + 0.5;
     let synths = [];
+
+    console.log("midi track count: ", midi.tracks.length, "duration: ", midi.duration);
 
     midi.tracks.forEach(track => {
       // const synth = new Tone.PolySynth(10, Tone.Synth, {
@@ -52,37 +85,11 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       synths.push(synth);
     })
 
-    console.log(midi.duration);
     setTimeout(() => {
       synths.forEach(synth => synth.dispose());
       synths.length = 0;
       console.log("midiplayer: release synths: ", synths);
     }, (now+midi.duration)*1000);
-  }
-
-  onInputUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({
-      midiUrl: e.target.value,
-      midiContent: '',
-    });
-  }
-
-  onDropFile = (fileContent: String) => {
-    console.log(fileContent);
-    this.setState({
-      midiUrl: '',
-      midiContent: fileContent      
-    });
-  }
-
-  clickPlay = () => {
-    if (this.state.midiUrl) {
-      Midi.fromUrl(this.state.midiUrl).then(this.playMidi);
-    } else if (this.state.midiContent) {
-      this.playMidi(new Midi(this.state.midiContent));
-    } else {
-      console.log("midiplayer: no midi to play!")
-    }
   }
 
   render() {
@@ -92,9 +99,8 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
                value={this.state.midiUrl}
                onChange={this.onInputUrl} />
         <FileDropzone onDropFile={this.onDropFile}/>
-
+        <textarea placeholder="json output..." value={this.state.midiJson} readOnly></textarea>
         <button onClick={e=>this.clickPlay()}>Play</button>
-        
       </div>
     )
   }

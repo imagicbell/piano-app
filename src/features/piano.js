@@ -31,7 +31,6 @@ class Piano extends React.Component<PianoProps> {
   stopNote = (note: string) => {
     console.log('stop note: ', note);
     this.piano.triggerRelease(note, "+4n");
-    // this.piano.triggerRelease(note);
   }
 
   playScheduleNote = (note: string, duration: string, time: string, velocity: number) => {
