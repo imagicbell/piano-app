@@ -1,10 +1,13 @@
 import React from 'react';
+import { connect } from 'react-redux';
 import Midi from '@tonejs/midi';
 import SampleLibrary from 'libs/Tonejs-Instruments';
 import Tone from 'tone';
 import FileDropzone from 'features/fileDropzone';
+import { triggerKey } from 'features/keyboard/action'
 
 type MidiplayerProps = {
+  dispatch: (a: *) => *
 }
 
 type MidiplayerState = {
@@ -78,7 +81,11 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
           //schedule all of the events
           track.notes.forEach(note => {
-            synth.triggerAttackRelease(note.name, note.duration, note.time + now, note.velocity)
+            const delay = note.time + now;
+            synth.triggerAttackRelease(note.name, note.duration, delay, note.velocity);
+            setTimeout(() => {
+              this.props.dispatch(triggerKey(note.name, note.duration));
+            }, delay * 1000);
           })
         }
       }).toMaster();
@@ -106,4 +113,4 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 }
 
-export default Midiplayer;
+export default connect()(Midiplayer);

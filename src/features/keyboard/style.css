@@ -25,7 +25,7 @@
   box-sizing: border-box;
 }
 
-.key-white:active{
+.key-white:active, .key-white-active {
   background: linear-gradient(#eee 10%, #ddd 60%, #bbb 93%, #ccc 97%);
 }
 
@@ -44,8 +44,8 @@
   border-radius: 0 0 3px 3px;
 }
 
-.key-black:active {
-  background: linear-gradient(rgb(86, 86, 86) 10%, #000 90%, #222 100%);
+.key-black:active, .key-black-active {
+  background: linear-gradient(rgb(160, 160, 160) 10%, rgb(120, 120, 120) 90%, rgb(80, 80, 80) 100%);
 }
 
 .key-black-text {

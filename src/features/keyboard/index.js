@@ -1,6 +1,8 @@
 // @flow
 import React from 'react';
-import styles from './index.css';
+import { connect } from 'react-redux';
+import classNames from 'classnames';
+import styles from './style.css';
 import { type NoteType, notes } from 'config/notes';
 
 const WHITE_KEY_WIDTH = 2.222;
@@ -8,6 +10,7 @@ const WHITE_KEY_WIDTH = 2.222;
 type KeyboardProps = {
   playKey: (note: string) => void,
   stopKey: (note: string) => void,
+  activeKeys: String[],
 }
 
 class Keyboard extends React.Component<KeyboardProps> {
@@ -50,24 +53,38 @@ class Keyboard extends React.Component<KeyboardProps> {
   }
 
   render() {
+    this.blackKeyLeft = WHITE_KEY_WIDTH * 2/3;
+    
     return (
       <div className="keyboard-container">
         <div className="key-wrap">
         {
-          this.whiteKeys.map(key => (
-            <div key={key.midi} className="key-white" style={this.whiteKeyStyle}
-                 onPointerDown={e => this.pressKey(key)} onPointerUp={e => this.releaseKey(key)}>
-                <span className="key-white-text">{key.ansi}</span> 
-            </div>
-          ))
+          this.whiteKeys.map(key => {
+            const className = classNames({
+              'key-white': true,
+              'key-white-active': this.props.activeKeys.findIndex(k => k === key.ansi) >= 0
+            });
+            return (
+              <div key={key.midi} className={className} style={this.whiteKeyStyle}
+                  onPointerDown={e => this.pressKey(key)} onPointerUp={e => this.releaseKey(key)}>
+                  <span className="key-white-text">{key.ansi}</span> 
+              </div>
+            );
+          })
         }
         {
-          this.blackKeys.map((key, index) => (
-            <div key={key.midi} className="key-black" style={this.blackKeyStyle(key, index)}
-                 onPointerDown={e => this.pressKey(key)} onPointerUp={e => this.releaseKey(key)}>
-                <span className="key-black-text">{key.ansi}</span>
-            </div>
-          ))
+          this.blackKeys.map((key, index) => {
+            const className = classNames({
+              'key-black': true,
+              'key-black-active': this.props.activeKeys.findIndex(k => k === key.ansi) >= 0
+            });
+            return (
+              <div key={key.midi} className={className} style={this.blackKeyStyle(key, index)}
+                   onPointerDown={e => this.pressKey(key)} onPointerUp={e => this.releaseKey(key)}>
+                  <span className="key-black-text">{key.ansi}</span>
+              </div>
+            );
+          })
         }
         </div>
       </div>
@@ -75,4 +92,8 @@ class Keyboard extends React.Component<KeyboardProps> {
   }
 }
 
-export default Keyboard;
+export default connect(
+  state => ({
+    activeKeys: state.keyboard.activeKeys,
+  })
+)(Keyboard);

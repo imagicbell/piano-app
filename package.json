@@ -8,7 +8,10 @@
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-dropzone": "^10.1.4",
+    "react-redux": "^7.0.3",
     "react-scripts": "3.0.1",
+    "redux": "^4.0.1",
+    "redux-thunk": "^2.3.0",
     "tone": "^13.4.9"
   },
   "scripts": {
@@ -33,6 +36,7 @@
     ]
   },
   "devDependencies": {
-    "flow-bin": "^0.98.1"
+    "flow-bin": "^0.98.1",
+    "redux-logger": "^3.0.6"
   }
 }
