@@ -4,7 +4,9 @@ import Midi from '@tonejs/midi';
 import SampleLibrary from 'libs/Tonejs-Instruments';
 import Tone from 'tone';
 import FileDropzone from 'features/fileDropzone';
-import { triggerKey } from 'features/keyboard/action'
+import { triggerKey } from 'features/keyboard/action';
+
+type PlayState = 'playing' | 'paused' | 'stopped';
 
 type MidiplayerProps = {
   dispatch: (a: *) => *
@@ -14,6 +16,7 @@ type MidiplayerState = {
   midi: Midi,
   midiUrl: String,
   midiJson: String,
+  playState: PlayState,
 }
 
 class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
@@ -21,11 +24,13 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   state: MidiplayerState = {
     midi: null,
     midiUrl: '',
-    midiJson: ''
+    midiJson: '',
+    playState: 'stopped',
   }
 
   onInputUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({
+      ...this.state,
       midiUrl: e.target.value,
       midi: null,
       midiJson: "Parsing midi file..."
@@ -43,6 +48,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   onDropFile = (fileContent: String) => {
     const midi = new Midi(fileContent);
     this.setState({
+      ...this.state,
       midiUrl: '',
       midi,
       midiJson: JSON.stringify(midi, undefined, 2),
@@ -53,6 +59,11 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     if (!this.state.midi) 
       return;
 
+    this.setState({
+      ...this.state,
+      playState: 'playing',
+    });
+
     const midi = this.state.midi;
     const now = Tone.now() + 0.5;
     let synths = [];
@@ -60,20 +71,6 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     console.log("midi track count: ", midi.tracks.length, "duration: ", midi.duration);
 
     midi.tracks.forEach(track => {
-      // const synth = new Tone.PolySynth(10, Tone.Synth, {
-      //   envelope : {
-      //     attack : 0.02,
-      //     decay : 0.1,
-      //     sustain : 0.3,
-      //     release : 1
-      //   }
-      // }).toMaster()
-      // synths.push(synth)
-      // //schedule all of the events
-      // track.notes.forEach(note => {
-      //   synth.triggerAttackRelease(note.name, note.duration, note.time + now, note.velocity)
-      // })
-
       const synth = SampleLibrary.load({
         instruments: "piano",
         onload: () => {
@@ -95,8 +92,33 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     setTimeout(() => {
       synths.forEach(synth => synth.dispose());
       synths.length = 0;
+      this.setState({
+        ...this.state,
+        playState: 'stopped',
+      })
       console.log("midiplayer: release synths: ", synths);
     }, (now+midi.duration)*1000);
+  }
+
+  clickResume = () => {
+    this.setState({
+      ...this.state, 
+      playState: 'playing',
+    });
+  }
+
+  clickPause = () => {
+    this.setState({
+      ...this.state,
+      playState: 'paused',
+    });
+  }
+
+  clickStopped = () => {
+    this.setState({
+      ...this.state,
+      playState: 'stopped',
+    });
   }
 
   render() {
