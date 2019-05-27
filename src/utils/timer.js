@@ -1,5 +1,9 @@
 //@flow
-export default class Timer {
+
+/**
+ * timer that can pause/resume
+ */
+export class Timer {
   callback: () => void;
   timerId: NodeJS.Timeout;
   start: number;
@@ -21,4 +25,11 @@ export default class Timer {
     clearTimeout(this.timerId);
     this.timerId = setTimeout(this.callback, this.remaining);
   }
+}
+
+/**
+ * @param {number} ms 毫秒
+ */
+export function Sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

@@ -30,7 +30,7 @@ var SampleLibrary = {
     },
 
     load: function (arg) {
-        var t, rt, i;
+        let t, rt;
         (arg) ? t = arg: t = {};
         t.instruments = t.instruments || this.list;
         t.baseUrl = t.baseUrl || this.baseUrl;
@@ -48,7 +48,7 @@ var SampleLibrary = {
 
         // if an array of instruments is passed...
         if (Array.isArray(t.instruments)) {
-            for (i = 0; i <= t.instruments.length - 1; i++) {
+            for (let i = 0; i <= t.instruments.length - 1; i++) {
                 var newT = this[t.instruments[i]];
                 //Minimize the number of samples to load
                 if (this.minify === true || t.minify === true) {
@@ -63,24 +63,21 @@ var SampleLibrary = {
                         minBy = 6
                     }
 
-                    var filtered = Object.keys(newT).filter((_, i) => {
-                        return i % minBy !== 0;
-                    })
+                    // eslint-disable-next-line
+                    var filtered = Object.keys(newT).filter((_, index) => {
+                        return index % minBy !== 0;
+                    });
+                    // eslint-disable-next-line
                     filtered.forEach((f) => {
                         delete newT[f]
                     })
-
                 }
-
-
-
 
                 rt[t.instruments[i]] = new Tone.Sampler(
                     newT, {
                         baseUrl: t.baseUrl + t.instruments[i] + "/",
                         onload: t.onload
                     }
-
                 )
             }
 
@@ -103,10 +100,10 @@ var SampleLibrary = {
                     minBy = 6
                 }
 
-                filtered = Object.keys(newT).filter(function (_, i) {
-                    return i % minBy !== 0;
+                filtered = Object.keys(newT).filter((_, index) => {
+                    return index % minBy !== 0;
                 })
-                filtered.forEach(function (f) {
+                filtered.forEach((f) => {
                     delete newT[f]
                 })
             }

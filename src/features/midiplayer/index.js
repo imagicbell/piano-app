@@ -1,10 +1,13 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import Tone from 'tone';
 import Midi from '@tonejs/midi';
 import SampleLibrary from 'libs/Tonejs-Instruments';
-import Tone from 'tone';
+import { Sleep } from 'utils/timer';
 import FileDropzone from 'features/fileDropzone';
 import { triggerKey } from 'features/keyboard/action';
+
+const PIANO_SYNTH_NUM = 3;
 
 type PlayState = 'playing' | 'paused' | 'stopped';
 
@@ -26,6 +29,117 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     midiUrl: '',
     midiJson: '',
     playState: 'stopped',
+  }
+
+  pianoSynths: any[] = [];
+  noteEvents: Tone.Event[] = [];
+
+  componentWillUnmount() {
+    this.pianoSynths.forEach(synth => synth.dispose());
+    this.pianoSynths.length = 0;
+  }
+
+  loadSynths = async (synthNum: Number) => {
+    let count = 0;
+    for (let i = 0; i < synthNum; i++) {
+      const synth = SampleLibrary.load({
+        instruments: "piano",
+        // eslint-disable-next-line
+        onload: () => {
+          count++;
+          console.log("midiplayer: load piano finish");
+        }
+      }).toMaster();
+      this.pianoSynths.push(synth);
+    }
+
+    while(true) {
+      await Sleep(100);
+      if (count === synthNum)
+        break;
+    }
+  }
+
+  reduceSynths = () => {
+    while (this.pianoSynths.length > PIANO_SYNTH_NUM) {
+      const synth = this.pianoSynths.pop();
+      synth.dispose();
+    }
+  }
+
+
+  scheduleMidiPlay = (midi: Midi) => {
+    console.log("midiplayer: start play. track count: ", midi.tracks.length, "duration: ", midi.duration);
+
+    midi.tracks.forEach((track, index) => {
+      const synth = this.pianoSynths[index];
+      //schedule all of the events
+      track.notes.forEach(note => {
+        const e = new Tone.Event((time) => {
+          synth.triggerAttackRelease(note.name, note.duration, time, note.velocity);
+          this.props.dispatch(triggerKey(note.name, note.duration));
+        });
+        e.start(note.time);
+        this.noteEvents.push(e);
+      });
+    });
+
+    const finishEvent = new Tone.Event(time => {
+      console.log("midiplayer: finish play");
+
+      this.pianoSynths.forEach(synth => synth.releaseAll());
+      this.reduceSynths();
+
+      this.noteEvents.forEach(e => e.dispose());
+      Tone.Transport.cancel();
+
+      this.setState({
+        ...this.state,
+        playState: 'stopped',
+      });
+    });
+    finishEvent.start(midi.duration);
+    this.noteEvents.push(finishEvent);
+
+    Tone.Transport.start();
+  }
+
+  clickPlay = () => {
+    if (!this.state.midi) 
+      return;
+
+    this.setState({
+      ...this.state,
+      playState: 'playing',
+    });
+
+    const loadSynthNum = this.state.midi.tracks.length - this.pianoSynths.length;
+    if (loadSynthNum >= 0) {
+      this.loadSynths(loadSynthNum).then(() => this.scheduleMidiPlay(this.state.midi));
+    } else {
+      this.scheduleMidiPlay(this.state.midi);
+    }
+  }
+
+  clickResume = () => {
+    this.setState({
+      ...this.state, 
+      playState: 'playing',
+    });
+  }
+
+  clickPause = () => {
+    this.setState({
+      ...this.state,
+      playState: 'paused',
+    });
+  }
+
+  clickStopped = () => {
+    this.setState({
+      ...this.state,
+      playState: 'stopped',
+    });
   }
 
   onInputUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,72 +166,6 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       midiUrl: '',
       midi,
       midiJson: JSON.stringify(midi, undefined, 2),
-    });
-  }
-
-  clickPlay = () => {
-    if (!this.state.midi) 
-      return;
-
-    this.setState({
-      ...this.state,
-      playState: 'playing',
-    });
-
-    const midi = this.state.midi;
-    const now = Tone.now() + 0.5;
-    let synths = [];
-
-    console.log("midi track count: ", midi.tracks.length, "duration: ", midi.duration);
-
-    midi.tracks.forEach(track => {
-      const synth = SampleLibrary.load({
-        instruments: "piano",
-        onload: () => {
-          console.log("midiplayer: load piano finish for midi track: ", track.name);
-
-          //schedule all of the events
-          track.notes.forEach(note => {
-            const delay = note.time + now;
-            synth.triggerAttackRelease(note.name, note.duration, delay, note.velocity);
-            setTimeout(() => {
-              this.props.dispatch(triggerKey(note.name, note.duration));
-            }, delay * 1000);
-          })
-        }
-      }).toMaster();
-      synths.push(synth);
-    })
-
-    setTimeout(() => {
-      synths.forEach(synth => synth.dispose());
-      synths.length = 0;
-      this.setState({
-        ...this.state,
-        playState: 'stopped',
-      })
-      console.log("midiplayer: release synths: ", synths);
-    }, (now+midi.duration)*1000);
-  }
-
-  clickResume = () => {
-    this.setState({
-      ...this.state, 
-      playState: 'playing',
-    });
-  }
-
-  clickPause = () => {
-    this.setState({
-      ...this.state,
-      playState: 'paused',
-    });
-  }
-
-  clickStopped = () => {
-    this.setState({
-      ...this.state,
-      playState: 'stopped',
     });
   }
 
