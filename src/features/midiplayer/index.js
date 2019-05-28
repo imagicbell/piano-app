@@ -6,10 +6,9 @@ import SampleLibrary from 'libs/Tonejs-Instruments';
 import { Sleep } from 'utils/timer';
 import FileDropzone from 'features/fileDropzone';
 import { triggerKey } from 'features/keyboard/action';
+import styles from './style.css'
 
 const PIANO_SYNTH_NUM = 3;
-
-type PlayState = 'playing' | 'paused' | 'stopped';
 
 type MidiplayerProps = {
   dispatch: (a: *) => *
@@ -19,7 +18,7 @@ type MidiplayerState = {
   midi: Midi,
   midiUrl: String,
   midiJson: String,
-  playState: PlayState,
+  isMidiReady: Boolean,
 }
 
 class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
@@ -28,13 +27,19 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     midi: null,
     midiUrl: '',
     midiJson: '',
-    playState: 'stopped',
+    isMidiReady: false,
   }
 
   pianoSynths: any[] = [];
   noteEvents: Tone.Event[] = [];
 
+  get playState() {
+    return Tone.Transport.state;
+  }
+
   componentWillUnmount() {
+    this.cleanSchedule();
+
     this.pianoSynths.forEach(synth => synth.dispose());
     this.pianoSynths.length = 0;
   }
@@ -67,9 +72,10 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     }
   }
 
-
   scheduleMidiPlay = (midi: Midi) => {
-    console.log("midiplayer: start play. track count: ", midi.tracks.length, "duration: ", midi.duration);
+    this.cleanSchedule();
+
+    console.log("midiplayer: schedule play. track count: ", midi.tracks.length, "duration: ", midi.duration);
 
     midi.tracks.forEach((track, index) => {
       const synth = this.pianoSynths[index];
@@ -86,60 +92,40 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
     const finishEvent = new Tone.Event(time => {
       console.log("midiplayer: finish play");
-
-      this.pianoSynths.forEach(synth => synth.releaseAll());
-      this.reduceSynths();
-
-      this.noteEvents.forEach(e => e.dispose());
-      Tone.Transport.cancel();
-
-      this.setState({
-        ...this.state,
-        playState: 'stopped',
-      });
     });
     finishEvent.start(midi.duration);
     this.noteEvents.push(finishEvent);
 
-    Tone.Transport.start();
+    this.setState({
+      ...this.state,
+      isMidiReady: true,
+    });
   }
 
-  clickPlay = () => {
-    if (!this.state.midi) 
-      return;
+  cleanSchedule = () => {
+    this.pianoSynths.forEach(synth => synth.releaseAll());
+    this.reduceSynths();
+
+    this.noteEvents.forEach(e => e.dispose());
+    Tone.Transport.cancel();
 
     this.setState({
       ...this.state,
-      playState: 'playing',
+      isMidiReady: false,
     });
+  }
 
-    const loadSynthNum = this.state.midi.tracks.length - this.pianoSynths.length;
-    if (loadSynthNum >= 0) {
-      this.loadSynths(loadSynthNum).then(() => this.scheduleMidiPlay(this.state.midi));
+  onChangeMidi = () => {
+    if (!this.state.midi) {
+      this.cleanSchedule();
     } else {
-      this.scheduleMidiPlay(this.state.midi);
+      const loadSynthNum = this.state.midi.tracks.length - this.pianoSynths.length;
+      if (loadSynthNum >= 0) {
+        this.loadSynths(loadSynthNum).then(() => this.scheduleMidiPlay(this.state.midi));
+      } else {
+        this.scheduleMidiPlay(this.state.midi);
+      }
     }
-  }
-
-  clickResume = () => {
-    this.setState({
-      ...this.state, 
-      playState: 'playing',
-    });
-  }
-
-  clickPause = () => {
-    this.setState({
-      ...this.state,
-      playState: 'paused',
-    });
-  }
-
-  clickStopped = () => {
-    this.setState({
-      ...this.state,
-      playState: 'stopped',
-    });
   }
 
   onInputUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,6 +142,8 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
         midi,
         midiJson: JSON.stringify(midi, undefined, 2),
       });
+
+      this.onChangeMidi();
     });
   }
 
@@ -167,6 +155,42 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       midi,
       midiJson: JSON.stringify(midi, undefined, 2),
     });
+
+    this.onChangeMidi();
+  }
+
+  get playBtnText() {
+    switch(this.playState) {
+      case "stopped" : return "Play";
+      case "started" : return "Pause";
+      case "paused" : return "Resume";
+      default: return "Play";
+    }
+  }
+
+  clickPlayBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    switch(e.target.innerText) {
+      case "Play": 
+        Tone.Transport.start();
+        break;
+
+      case "Pause":
+        Tone.Transport.pause();
+        break;
+
+      case "Resume":
+        Tone.Transport.start();
+        break;
+
+      default:
+        break;
+    }
+    this.forceUpdate();
+  }
+
+  clickStopBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    Tone.Transport.stop();
+    this.forceUpdate();
   }
 
   render() {
@@ -176,8 +200,17 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
                value={this.state.midiUrl}
                onChange={this.onInputUrl} />
         <FileDropzone onDropFile={this.onDropFile}/>
-        <textarea placeholder="json output..." value={this.state.midiJson} readOnly></textarea>
-        <button onClick={e=>this.clickPlay()}>Play</button>
+        <textarea className="json-area" placeholder="json output..." value={this.state.midiJson} readOnly />
+
+        <button disabled={!this.state.isMidiReady}
+                onClick={this.clickPlayBtn}>
+          {this.playBtnText}
+        </button>
+
+        <button hidden={!this.state.isMidiReady}
+                onClick={this.clickStopBtn}>
+          Stop
+        </button>
       </div>
     )
   }
