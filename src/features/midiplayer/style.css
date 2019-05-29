@@ -5,10 +5,14 @@
   height: 250px;
 }
 
+.control-btn-container {
+  display: inline-block;
+}
+
 .play-btn, .stop-btn {
 
 }
 
-.playbackrate-btn {
+.step-foward-btn, .step-backward-btn {
   
 }

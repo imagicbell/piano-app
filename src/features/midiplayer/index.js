@@ -81,6 +81,9 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
     console.log("midiplayer: schedule play. track count: ", midi.tracks.length, "duration: ", midi.duration);
 
+    Tone.Transport.bpm.value = midi.header.tempos[0].bpm;
+    Tone.Transport.timeSignature = midi.header.timeSignatures[0].timeSignature;
+
     midi.tracks.forEach((track, index) => {
       const synth = this.pianoSynths[index];
       //schedule all of the events
@@ -165,6 +168,16 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     this.onChangeMidi();
   }
 
+  onChangePlaybackRate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const curPlaybackRate = parseFloat(e.target.value);
+    Tone.Transport.bpm.value = this.state.originBpm * curPlaybackRate;
+
+    this.setState({
+      ...this.state,
+      playbackRate: curPlaybackRate
+    });
+  }
+
   get playBtnText() {
     switch(this.playState) {
       case "stopped" : return "Play";
@@ -199,14 +212,20 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     this.forceUpdate();
   }
 
-  onChangePlaybackRate = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const curPlaybackRate = parseFloat(e.target.value);
-    Tone.Transport.bpm.value = this.state.originBpm * curPlaybackRate;
+  clickStepForwardBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    Tone.Transport.start();
+    Tone.Transport.pause('+0:1');
+  }
 
-    this.setState({
-      ...this.state,
-      playbackRate: curPlaybackRate
-    });
+  clickStepBackwardBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    let [bar, beat] = Tone.Transport.position.split(':', 2);
+    bar = parseInt(bar);
+    beat = parseInt(beat);
+    if (beat > 0) {
+      beat--;
+    } else {
+      
+    }
   }
 
   render() {
@@ -218,24 +237,38 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
         <FileDropzone onDropFile={this.onDropFile}/>
         <textarea className="json-area" placeholder="json output..." value={this.state.midiJson} readOnly />
 
-        <button className="play-btn"
-                disabled={!this.state.isMidiReady}
-                onClick={this.clickPlayBtn}>
-          {this.playBtnText}
-        </button>
-
-        <button className="stop-btn"
-                hidden={!this.state.isMidiReady}
-                onClick={this.clickStopBtn}>
-          Stop
-        </button>
-
         <div className="slidecontainer">
           <span>{`Tempo:  ${this.state.playbackRate}`}</span>  
           <input type="range" min="0.1" max="4" step="0.1" 
                  value={this.state.playbackRate} 
                  onChange={this.onChangePlaybackRate}/>
           <span>{`BPM:  ${Tone.Transport.bpm.value}`}</span>
+        </div>
+
+        <div className="control-btn-container">
+          <button className="play-btn"
+                  disabled={!this.state.isMidiReady}
+                  onClick={this.clickPlayBtn}>
+            {this.playBtnText}
+          </button>
+
+          <button className="stop-btn"
+                  hidden={!this.state.isMidiReady}
+                  onClick={this.clickStopBtn}>
+            Stop
+          </button>
+
+          <button className="step-foward-btn"
+                  hidden={this.playState !== "paused"}
+                  onClick={this.clickStepForwardBtn}>
+            {'>>'}
+          </button>
+
+          <button className="step-backward-btn"
+                  hidden={this.playState !== "paused"}
+                  onClick={this.clickStepBackwardBtn}>
+            {'<<'}
+          </button>
         </div>
 
       </div>

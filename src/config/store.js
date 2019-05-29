@@ -16,10 +16,10 @@ const store = createStore(
   composeEnhancers(
     applyMiddleware(
       thunk, 
-      createLogger({
-        level: 'info',
-        collapsed: true,
-      })
+      // createLogger({
+      //   level: 'info',
+      //   collapsed: true,
+      // })
     ))
 )
 
