@@ -19,6 +19,7 @@ type MidiplayerState = {
   midiUrl: String,
   midiJson: String,
   isMidiReady: Boolean,
+  originBpm: Number,
   playbackRate: Number,
 }
 
@@ -29,6 +30,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     midiUrl: '',
     midiJson: '',
     isMidiReady: false,
+    orignBpm: 0,
     playbackRate: 1,
   }
 
@@ -75,9 +77,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 
   scheduleMidiPlay = (midi: Midi) => {
-    console.log(1, Tone.Transport.bpm.value);
     this.cleanSchedule();
-    console.log(2, Tone.Transport.bpm.value);
 
     console.log("midiplayer: schedule play. track count: ", midi.tracks.length, "duration: ", midi.duration);
 
@@ -89,7 +89,6 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
           synth.triggerAttackRelease(note.name, note.duration, time, note.velocity);
           this.props.dispatch(triggerKey(note.name, note.duration));
         });
-        // e.playbackRate = this.state.playbackRate;
         e.start(note.time);
         this.noteEvents.push(e);
       });
@@ -98,14 +97,14 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     const finishEvent = new Tone.Event(time => {
       console.log("midiplayer: finish play");
     });
-    // finishEvent.playbackRate = this.state.playbackRate;
-    console.log(3, Tone.Transport.bpm.value);
     finishEvent.start(midi.duration);
     this.noteEvents.push(finishEvent);
 
     this.setState({
       ...this.state,
       isMidiReady: true,
+      originBpm: Tone.Transport.bpm.value,
+      playbackRate: 1,  //reset
     });
   }
 
@@ -201,15 +200,13 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 
   onChangePlaybackRate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const curPlaybackRate = parseFloat(e.target.value);
+    Tone.Transport.bpm.value = this.state.originBpm * curPlaybackRate;
+
     this.setState({
       ...this.state,
-      playbackRate: parseFloat(e.target.value)
+      playbackRate: curPlaybackRate
     });
-
-    console.log(">>>>>>", Tone.Transport.bpm)
-    Tone.Transport.bpm.value = 720;;
-
-    // this.noteEvents.forEach(e => e.playbackRate = this.state.playbackRate);
   }
 
   render() {
@@ -238,6 +235,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
           <input type="range" min="0.1" max="4" step="0.1" 
                  value={this.state.playbackRate} 
                  onChange={this.onChangePlaybackRate}/>
+          <span>{`BPM:  ${Tone.Transport.bpm.value}`}</span>
         </div>
 
       </div>
