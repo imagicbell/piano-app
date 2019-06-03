@@ -10,6 +10,19 @@ import styles from './style.css'
 
 const PIANO_SYNTH_NUM = 3;
 
+type MidiNote = {
+  name: String,
+  time: Number,
+  ticks: Number,
+  duration: Number,
+  velocity: Number,
+
+  noteIndex: Number,
+  trackIndex: Number,
+
+  startSeconds: Number,  // the elapsed seconds when play the note
+}
+
 type MidiplayerProps = {
   dispatch: (a: *) => *
 }
@@ -21,12 +34,6 @@ type MidiplayerState = {
   originBpm: Number,
   playbackRate: Number,
   playNoteIndexes: Number[],
-}
-
-type MidiNote = {
-  note: any,
-  noteIndex: Number,
-  trackIndex: Number,
 }
 
 class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
@@ -42,6 +49,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
   midi: Midi = null;
   pianoSynths: any[] = [];
+  midiNotes: MidiNote[][] = [];
   noteEvents: Tone.Event[] = [];
 
   frameId: Number;
@@ -54,14 +62,14 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   get currentNotes(): MidiNote[] {
     let notes: MidiNote[] = [];
     this.state.playNoteIndexes.forEach((noteIndex, trackIndex) => {
-      const note = this.midi.tracks[trackIndex].notes[noteIndex];
+      const note = this.midiNotes[trackIndex][noteIndex];
       if (note === undefined) 
         return;
-      if (notes.length === 0 || note.ticks === notes[0].note.ticks) {
-        notes.push({ note, noteIndex, trackIndex });
-      } else if (note.ticks > notes[0].note.ticks) {
+      if (notes.length === 0 || note.ticks === notes[0].ticks) {
+        notes.push(note);
+      } else if (note.ticks > notes[0].ticks) {
         notes.length = 0;
-        notes.push({ note, noteIndex, trackIndex });
+        notes.push(note);
       }
     });
     return notes;
@@ -70,22 +78,14 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   get nextNotes(): MidiNote[] {
     let notes: MidiNote[] = [];
     this.state.playNoteIndexes.forEach((noteIndex, trackIndex) => {
-      const note = this.midi.tracks[trackIndex].notes[noteIndex + 1];
+      const note = this.midiNotes[trackIndex][noteIndex + 1];
       if (note === undefined) 
         return;
-      if (notes.length === 0 || note.ticks === notes[0].note.ticks) {
-        notes.push({
-          note,
-          noteIndex: noteIndex + 1,
-          trackIndex
-        });
-      } else if (note.ticks < notes[0].note.ticks) {
+      if (notes.length === 0 || note.ticks === notes[0].ticks) {
+        notes.push(note);
+      } else if (note.ticks < notes[0].ticks) {
         notes.length = 0;
-        notes.push({
-          note,
-          noteIndex: noteIndex + 1,
-          trackIndex
-        });
+        notes.push(note);
       }
     }); 
     return notes;
@@ -94,22 +94,14 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   get previousNotes(): MidiNote[] {
     let notes: MidiNote[] = [];
     this.state.playNoteIndexes.forEach((noteIndex, trackIndex) => {
-      const note = this.midi.tracks[trackIndex].notes[noteIndex - 1];
+      const note = this.midiNotes[trackIndex][noteIndex - 1];
       if (note === undefined) 
         return;
-      if (notes.length === 0 || note.ticks === notes[0].note.ticks) {
-        notes.push({
-          note,
-          noteIndex: noteIndex - 1,
-          trackIndex
-        });
-      } else if (note.ticks > notes[0].note.ticks) {
+      if (notes.length === 0 || note.ticks === notes[0].ticks) {
+        notes.push(note);
+      } else if (note.ticks > notes[0].ticks) {
         notes.length = 0;
-        notes.push({
-          note,
-          noteIndex: noteIndex - 1,
-          trackIndex
-        });
+        notes.push(note);
       }
     }); 
     return notes;
@@ -184,17 +176,36 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
     midi.tracks.forEach((track, trackIndex) => {
       const synth = this.pianoSynths[trackIndex];
+      const mNotes = [];
+      this.midiNotes.push(mNotes);
+
       track.notes.forEach((note, noteIndex) => {
+        let midiNote: MidiNote = {
+          name: note.name,
+          time: note.time,
+          ticks: note.ticks,
+          duration: note.duration,
+          velocity: note.velocity,
+          noteIndex,
+          trackIndex,
+          startSeconds: -1
+        }
+        mNotes.push(midiNote);
+
         const e = new Tone.Event((time) => {
           synth.triggerAttackRelease(note.name, note.duration, time, note.velocity);
           this.props.dispatch(triggerKey(note.name, note.duration));
 
+          midiNote.startSeconds = Tone.Transport.seconds;
+          
           const playNoteIndexes = this.state.playNoteIndexes;
           playNoteIndexes[trackIndex] = noteIndex;
           this.setState({
             ...this.state,
             playNoteIndexes,
           });
+
+          console.log(">>>>> ", this.state.playNoteIndexes);
         });
         e.start(note.time);
         this.noteEvents.push(e);
@@ -220,6 +231,8 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   cleanSchedule = () => {
     this.pianoSynths.forEach(synth => synth.releaseAll());
     this.reduceSynths();
+
+    this.midiNotes.length = 0;
 
     this.noteEvents.forEach(e => e.dispose());
     Tone.Transport.cancel();
@@ -330,8 +343,8 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
     let minDuration = Infinity;
     nextNotes.forEach(midiNote => {
-      if (midiNote.note.duration < minDuration) {
-        minDuration = midiNote.note.duration;
+      if (midiNote.duration < minDuration) {
+        minDuration = midiNote.duration;
       }
     });
     Tone.Transport.pause(`+${minDuration}`); 
@@ -349,13 +362,13 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     //   this.pianoSynths[midiNote.trackIndex].triggerAttackRelease(midiNote.note.name, midiNote.note.duration, Tone.now, midiNote.velocity);
     // });
 
-    Tone.Transport.seconds = preNotes[0].time;
+    Tone.Transport.seconds = preNotes[0].startSeconds;
     Tone.Transport.start();
 
     let minDuration = Infinity;
     preNotes.forEach(midiNote => {
-      if (midiNote.note.duration < minDuration) {
-        minDuration = midiNote.note.duration;
+      if (midiNote.duration < minDuration) {
+        minDuration = midiNote.duration;
       }
     });
     Tone.Transport.pause(`+${minDuration}`); 
