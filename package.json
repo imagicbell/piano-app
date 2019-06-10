@@ -5,6 +5,7 @@
   "dependencies": {
     "@tonejs/midi": "^2.0.0",
     "classnames": "^2.2.6",
+    "opensheetmusicdisplay": "^0.7.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-dropzone": "^10.1.4",
