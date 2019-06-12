@@ -148,7 +148,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
     console.log("midiplayer: schedule play. track count: ", midi.tracks.length, "duration: ", midi.duration);
 
-    Tone.Transport.bpm.value = midi.header.tempos[0].bpm;
+    Tone.Transport.bpm.value = midi.header.tempos && midi.header.tempos.length > 0 ? midi.header.tempos[0].bpm : 120;
     Tone.Transport.timeSignature = midi.header.timeSignatures[0].timeSignature;
 
     midi.tracks.forEach((track, trackIndex) => {
