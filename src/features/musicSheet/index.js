@@ -1,6 +1,7 @@
 // @flow
 import React from 'react';
 import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
+import MusicXml from 'data/musicxml';
 
 type MusicSheetProps = {
 
@@ -21,6 +22,12 @@ class MusicSheet extends React.Component<MusicSheetProps, MusicSheetState> {
       this.osmd.render()
     }, (e) => {
       console.log("music sheet load error\n", e);
+    });
+
+    let musicxml = new MusicXml();
+    musicxml.load("/res/midi/5th_melody_of_the_night.mxl").then(()=>{
+    // musicxml.load("/res/midi/Chant.musicxml").then(()=>{
+      console.log("load successfully\n ",musicxml.document);
     });
   }
 
