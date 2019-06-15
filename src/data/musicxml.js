@@ -14,6 +14,8 @@ export default class MusicXml {
     const self: MusicXml = this;
     const str: string = content;
 
+    console.log("musicxml load \n", content);
+    
     if (str.substr(0, 4) === "\x50\x4b\x03\x04") {
       // This is a zip file, unpack it first
       try {

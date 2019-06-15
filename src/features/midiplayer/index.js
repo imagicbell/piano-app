@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import Tone from 'tone';
-import Midi from '@tonejs/midi';
+import ToneMidi from '@tonejs/midi';
 import SampleLibrary from 'libs/Tonejs-Instruments';
 import { Sleep } from 'utils/timer';
 import FileDropzone from 'features/fileDropzone';
@@ -40,7 +40,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     playNoteIndexes: [],
   }
 
-  midi: Midi = null;
+  midi: ToneMidi = null;
   pianoSynths: any[] = [];
   noteEvents: Tone.Event[] = [];
 
@@ -143,7 +143,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     }
   }
 
-  scheduleMidiPlay = (midi: Midi) => {
+  scheduleMidiPlay = (midi: ToneMidi) => {
     this.cleanSchedule();
 
     console.log("midiplayer: schedule play. track count: ", midi.tracks.length, "duration: ", midi.duration);
@@ -221,7 +221,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       midiJson: "Parsing midi file..."
     });
 
-    Midi.fromUrl(this.state.midiUrl).then(midi => {
+    ToneMidi.fromUrl(this.state.midiUrl).then(midi => {
       this.midi = midi;
       this.setState({
         ...this.state,
@@ -233,7 +233,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 
   onDropFile = (fileContent: String) => {
-    this.midi = new Midi(fileContent);
+    this.midi = new ToneMidi(fileContent);
 
     this.setState({
       ...this.state,
