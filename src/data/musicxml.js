@@ -4,7 +4,7 @@ import { parseScore } from 'musicxml-interfaces';
 
 export default class MusicXml {
 
-  document: {};
+  data: {};
 
   /**
    * Load a MusicXML file
@@ -34,8 +34,8 @@ export default class MusicXml {
 
     if (str.substr(0, 5) === "<?xml") {
       // Parse the string representing an xml file
-      self.document = parseScore(str);
-      return;
+      self.data = parseScore(str);
+      return self.data;
     }
 
     if (str.length < 2083) {
