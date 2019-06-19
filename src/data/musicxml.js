@@ -4,14 +4,11 @@ import { parseScore } from 'musicxml-interfaces';
 
 export default class MusicXml {
 
-  data: {};
-
   /**
    * Load a MusicXML file
    * @param content is either the url of a file, or the string content of a .xml/.mxl file
    */
-  load = async (content: string) => {
-    const self: MusicXml = this;
+  static Load = async (content: string) => {
     const str: string = content;
 
     console.log("musicxml load \n", content);
@@ -20,7 +17,7 @@ export default class MusicXml {
       // This is a zip file, unpack it first
       try {
         const xmlStr = await MXLHelper.MXLtoXMLstring(str);
-        await self.load(xmlStr);
+        return await MusicXml.Load(xmlStr);
       } catch (err) {
         throw new Error("Invalid MXL file: " + err);
       }
@@ -29,13 +26,14 @@ export default class MusicXml {
     // Javascript loads strings as utf-16, which is wonderful BS if you want to parse UTF-8 :S
     if (str.substr(0, 3) === "\uf7ef\uf7bb\uf7bf") {
       // UTF with BOM detected, truncate first three bytes and pass along
-      await self.load(str.substr(3));
+      return await MusicXml.Load(str.substr(3));
     }
 
     if (str.substr(0, 5) === "<?xml") {
       // Parse the string representing an xml file
-      self.data = parseScore(str);
-      return self.data;
+      const data = parseScore(str);
+      console.log("musicxml load \n", data);
+      return data;
     }
 
     if (str.length < 2083) {
@@ -46,11 +44,11 @@ export default class MusicXml {
           let response = await fetch(str, {headers: {"Content-Type": "application/octet-stream" }});
           let arrayBuffer = await response.arrayBuffer();
           let text = String.fromCharCode.apply(null, new Uint8Array(arrayBuffer));
-          await self.load(text);
+          return await MusicXml.Load(text);
         } else {
           let response = await fetch(str, {headers: {"Content-Type": "applicaton/xml"}});
           let text = await response.text();
-          await self.load(text);
+          return await MusicXml.Load(text);
         }
       } catch(err) {
         throw new Error("Invalid MXL/XML file: " + err);

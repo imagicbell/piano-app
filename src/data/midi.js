@@ -2,6 +2,7 @@
 import ToneMidi from '@tonejs/midi';
 import MusicXML from './musicxml';
 import { notes as noteMap } from 'config/notes';
+import "utils/extension"
 
 const KeySignatureKeys = ["Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#"];
 
@@ -55,21 +56,30 @@ export type Track = {
 export default class Midi {
   header: Header;
   tracks: Track[];
+  duration: number;
 
   /**
    * Load a MusicXML file
    * @param content is either the url of a file, or the string content of a .xml/.mxl file
    */
   loadMusicXml = async (content: string) => {
-    let musicxml = new MusicXML();
-    let data = await musicxml.load(content);
-    
+    let data = await MusicXML.Load(content);
+
     let measureTimes: number[];
-    [this.header, measureTimes] = this.parseHeader(data);
-    this.tracks = this.parseTrack(data, this.header, measureTimes);
+    [this.header, measureTimes] = this._parseHeader(data);
+    this.tracks = this._parseTrack(data, this.header, measureTimes);
+
+    this.duration = 0;
+    this.tracks.forEach(track => {
+      const lastNote = track.notes[track.notes.length - 1];
+      this.duration = Math.max(this.duration, lastNote.time + lastNote.duration);
+    });
+
+    console.log("parse musicxml header\n", this.header);
+    console.log("parse musicxml tracks\n", this.tracks);
   }
 
-  #parseHeader = (data) : Header => {
+  _parseHeader = (data: any) : [Header, number[]] => {
     let header: Header = {
       name: '',
       tempos: [],
@@ -132,7 +142,7 @@ export default class Midi {
           if (info.tempo) {
             //tempo
             header.tempos.push({
-              tempo: info.tempo,
+              tempo: parseInt(info.tempo),
               measures: measureIndex,
               time: measureTimes[measureIndex],
             });
@@ -141,7 +151,7 @@ export default class Midi {
           if (info.sound && info.sound.tempo) {
             //tempo
             header.tempos.push({
-              tempo: info.sound.tempo,
+              tempo: parseInt(info.sound.tempo),
               measures: measureIndex,
               time: measureTimes[measureIndex],
             });
@@ -161,7 +171,7 @@ export default class Midi {
     return [header, measureTimes];
   }
 
-  #parseTrack = (data, header: Header, measureTimes: number[]) : Track[] => {
+  _parseTrack = (data: any, header: Header, measureTimes: number[]) : Track[] => {
     let tracks: Track[] = new Array(data.partList.length);
 
     data.partList.forEach((part, partIndex) => {
@@ -177,11 +187,10 @@ export default class Midi {
 
     let curDivisionTime: number;  //seconds of a division
     let curTempo: Tempo;
-    let tieNotes: Note[] = new Array(tracks.length);
+    let tieNotes: Note[][] = new Array(tracks.length);
 
     data.measures.forEach((measure, measureIndex) => {
-      let tempoIndex = header.tempos.lastIndexOf(t => t.measures <= measureIndex);
-      curTempo = header.tempos[tempoIndex];
+      curTempo = header.tempos.findLast(t => t.measures <= measureIndex);
 
       data.partList.forEach((part, partIndex) => {
         let notes = tracks[partIndex].notes;
@@ -209,20 +218,27 @@ export default class Midi {
                 let note: Note;
                 let isNewNote = true;
                 if (info.ties) {
-                  if (info.ties[0].type === "Start") {
-                    note = new Note();
-                    tieNotes[partIndex] = note;
-                  } else if (info.ties[0].type === "Stop") {
-                    note = tieNotes[partIndex];
-                    note.duration += info.duration * curDivisionTime;
+                  if (info.ties[0].type === 0) {
+                    //start
+                    note = {};
+                    tieNotes[partIndex] = tieNotes[partIndex] || [];
+                    tieNotes[partIndex].push(note);
+                  } else if (info.ties[0].type === 1) {
+                    //stop
                     isNewNote = false;
+                    note = tieNotes[partIndex].shift();
+                    note.duration += info.duration * curDivisionTime;
+                    if (info.ties.length === 2) {
+                      //have another start
+                      tieNotes[partIndex].push(note);
+                    }
                   }
                 } else {
-                  note = new Note();
+                  note = {};
                 }
                 
                 if (isNewNote) {
-                  note.time = info.chord ? notes[notes.length - 1] : curTime;
+                  note.time = info.chord ? notes[notes.length - 1].time : curTime;
                   note.duration = info.duration * curDivisionTime;
                   
                   let noteName: string = info.pitch.step.toUpperCase() + info.pitch.octave;
@@ -250,6 +266,8 @@ export default class Midi {
         });
       });
     });
+
+    return tracks;
   }
 
   /**
