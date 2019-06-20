@@ -30,7 +30,7 @@ export type Header = {
   tempos: Tempo[],
 	timeSignatures: TimeSignature[],
   keySignatures: KeySignature[],
-  velocities: Velocity[],
+  velocities?: Velocity[],
 }
 
 export type Note = {

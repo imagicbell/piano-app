@@ -1,7 +1,8 @@
 //@flow
 import ToneMidi from '@tonejs/midi';
 import { ReadMusicXml } from './musicxmlReader';
-import { parseHeader, parseTracks } from './musicxmlParser';
+import { parseHeader as parseHeader_musicxml, parseTracks as parseTracks_musicxml } from './musicxmlParser';
+import { parseHeader as parseHeader_tonemidi, parseTracks as parseTracks_tonemidi } from './tonemidiParser';
 import { type Header, type Track, type Measure } from './type';
 
 export default class Midi {
@@ -17,8 +18,8 @@ export default class Midi {
   loadMusicXml = async (content: string) => {
     let data = await ReadMusicXml(content);
 
-    [this.header, this.measures] = parseHeader(data);
-    [this.tracks, this.duration] = parseTracks(data, this.header, this.measures);
+    [this.header, this.measures] = parseHeader_musicxml(data);
+    [this.tracks, this.duration] = parseTracks_musicxml(data, this.header, this.measures);
 
     console.log("parse musicxml header\n", this.header);
     console.log("parse musicxml tracks\n", this.tracks);
@@ -35,7 +36,14 @@ export default class Midi {
     } else {
       toneMidi = new ToneMidi(content);
     }
+
+    // console.log("tonejs midi\n", JSON.stringify(toneMidi, undefined, 2));
     
-    //todo: Convert the Tonejs/Midi data structure to our's
+    [this.header, this.measures] = parseHeader_tonemidi(toneMidi);
+    this.tracks = parseTracks_tonemidi(toneMidi);
+    this.duration = toneMidi.duration;
+
+    console.log("parse tonejs midi header\n", this.header);
+    console.log("parse tonejs midi tracks\n", this.tracks);
   }
 }
