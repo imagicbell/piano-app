@@ -2,11 +2,12 @@
 import ToneMidi from '@tonejs/midi';
 import { ReadMusicXml } from './musicxmlReader';
 import { parseHeader, parseTracks } from './musicxmlParser';
-import { type Header, type Track } from './type';
+import { type Header, type Track, type Measure } from './type';
 
 export default class Midi {
   header: Header;
   tracks: Track[];
+  measures: Measure[];
   duration: number;
 
   /**
@@ -16,9 +17,8 @@ export default class Midi {
   loadMusicXml = async (content: string) => {
     let data = await ReadMusicXml(content);
 
-    let measureTimes: number[];
-    [this.header, measureTimes] = parseHeader(data);
-    [this.tracks, this.duration] = parseTracks(data, this.header, measureTimes);
+    [this.header, this.measures] = parseHeader(data);
+    [this.tracks, this.duration] = parseTracks(data, this.header, this.measures);
 
     console.log("parse musicxml header\n", this.header);
     console.log("parse musicxml tracks\n", this.tracks);

@@ -2,29 +2,32 @@ import {
   type Tempo,
   type TimeSignature,
   type KeySignature,
+  type Velocity,
   type Header,
   type Note,
   type Instrument,
   type Track,
+  type Measure,
 } from './type';
 import "utils/extension";
 import { notes as noteMap } from 'config/notes';
 
 const KeySignatureKeys = ["Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#"];
 
-export const parseHeader = (data: any): [Header, number[]] => {
+export const parseHeader = (data: any): [Header, Measure[]] => {
   const header: Header = {
     name: '',
     tempos: [],
     timeSignatures: [],
-    keySignatures: []
+    keySignatures: [],
+    velocities: []
   };
-  const measureTimes: number[] = new Array(data.measures.length);
+  const measures: Measure[] = new Array(data.measures.length);
 
   header.name = parseHeaderName(data);
-  parseHeaderInfo(data, header.tempos, header.timeSignatures, header.keySignatures, measureTimes);
+  parseHeaderInfo(data, header, measures);
 
-  return [header, measureTimes];
+  return [header, measures];
 }
 
 const parseHeaderName = (data: any): string => {
@@ -42,47 +45,42 @@ const parseHeaderName = (data: any): string => {
   return '';
 }
 
-const parseHeaderInfo = (data: any, 
-                         tempos: Tempo[], timeSignatures: TimeSignature[], keySignatures: KeySignature[],
-                         measureTimes: number[]): void => {
+const parseHeaderInfo = (data: any, header: Header, measures: Measure[]): void => {
   let curTempo;
   let curTimeSignature;   
   //check the first part for the header data(just like the Tonejs/Midi)
   const partId = data.partList[0].id;
   
   data.measures.forEach((measure, measureIndex) => {
-    if (measureIndex === 0) {
-      measureTimes[measureIndex] = 0;
-    } else {
+    let measureTime = 0;
+    if (measureIndex > 0) {
       if (!curTempo || !curTimeSignature) {
         throw new Error("Invalid MusicXml file: no tempo or time signature info provided in first measure.")
       }
       let elapsedSeconds = (60 / curTempo.bpm) * curTimeSignature.beats;
-      measureTimes[measureIndex] = measureTimes[measureIndex - 1] + elapsedSeconds;
+      measureTime = measures[measureIndex - 1].time + elapsedSeconds;
     }
+    measures[measureIndex] = { id: measureIndex, time: measureTime }
 
     measure.parts[partId].forEach(info => {
       if (info._class === "Attributes") {
         //key signatures
         if (info.keySignatures && info.keySignatures.length > 0) {
-          keySignatures.push(parseKeySignature(info.keySignatures[0], measureIndex, measureTimes[measureIndex]));
+          header.keySignatures.push(parseKeySignature(info.keySignatures[0], measureIndex, measureTime));
         }
         //time signatures
         if (info.times && info.times.length > 0) {
-          curTimeSignature = parseTimeSignature(info.times[0], measureIndex, measureTimes[measureIndex]);
-          timeSignatures.push(curTimeSignature);
+          curTimeSignature = parseTimeSignature(info.times[0], measureIndex, measureTime);
+          header.timeSignatures.push(curTimeSignature);
         }
-      } else if (info._class === "Sound") {
-        if (info.tempo) {
-          //tempo
-          curTempo = parseTempo(info, measureIndex, measureTimes[measureIndex]);
-          tempos.push(curTempo);
+      } else if (info._class === "Sound" || info._class === "Direction") {
+        let [tempo, velocity] = parseSound(info.sound ? info.sound : info, measureIndex, measureTime);
+        if (tempo) {
+          curTempo = tempo;
+          header.tempos.push(tempo);
         }
-      } else if (info._class === "Direction") {
-        if (info.sound && info.sound.tempo) {
-          //tempo
-          curTempo = parseTempo(info.sound, measureIndex, measureTimes[measureIndex]);
-          tempos.push(curTempo);
+        if (velocity) {
+          header.velocities.push(velocity);
         }
       }
     });
@@ -94,13 +92,24 @@ const parseHeaderInfo = (data: any,
   });
 }
 
-const parseTempo = (soundInfo: any, measures: number, time: number): Tempo => {
-  return {
-    tempo: parseInt(soundInfo.tempo),
-    bpm: undefined,
-    measures: measures,
-    time: time
-  };
+const parseSound = (soundInfo: any, measures: number, time: number): [Tempo, Velocity] => {
+  let tempo: Tempo, velocity: Velocity;
+  if (soundInfo.tempo) {
+    tempo = {
+      tempo: parseInt(soundInfo.tempo),
+      bpm: undefined,
+      measures: measures,
+      time: time
+    }
+  }
+  if (soundInfo.dynamics) {
+    velocity = {
+      dynamics: parseFloat(soundInfo.dynamics) * 0.01,
+      measures: measures,
+      time: time
+    }
+  }
+  return [tempo, velocity];
 }
 
 const parseTimeSignature = (tsInfo: any, measures: number, time: number): TimeSignature => {
@@ -118,10 +127,10 @@ const parseKeySignature = (ksInfo: any, measures: number, time: number): KeySign
     scale: ksInfo.mode ? ksInfo.mode : "major",
     measures: measures,
     time: time
-  }
+  };
 }
 
-export const parseTracks = (data: any, header: Header, measureTimes: number[]) : [Track[], number] => {
+export const parseTracks = (data: any, header: Header, measures: Measure[]) : [Track[], number] => {
   let tracks: Track[] = new Array(data.partList.length);
 
   data.partList.forEach((part, partIndex) => {
@@ -135,9 +144,9 @@ export const parseTracks = (data: any, header: Header, measureTimes: number[]) :
     };
   });
 
-  parseNotes(data, header, measureTimes, tracks);
+  parseNotes(data, header, measures, tracks);
 
-  let lastMeasureTime = measureTimes[measureTimes.length - 1];
+  let lastMeasureTime = measures[measures.length - 1].time;
   let lastBpm = header.tempos[header.tempos.length - 1].bpm;
   let lastBeats = header.timeSignatures[header.timeSignatures.length - 1].beats;
   let totalDuration = lastMeasureTime + (60 / lastBpm) * lastBeats;
@@ -145,17 +154,19 @@ export const parseTracks = (data: any, header: Header, measureTimes: number[]) :
   return [tracks, totalDuration];
 }
 
-const parseNotes = (data: any, header: Header, measureTimes: number[], tracks: Track[]): void => {
+const parseNotes = (data: any, header: Header, measures: Measure[], tracks: Track[]): void => {
   let curDivisionTime: number;  //seconds of a division
   let curTempo: Tempo;
+  let curVelocity: Velocity;
   let tieNotes: Note[][] = new Array(tracks.length).fill([]);
 
   data.measures.forEach((measure, measureIndex) => {
     curTempo = header.tempos.findLast(t => t.measures <= measureIndex);
+    curVelocity = header.velocities.findLast(v => v.measures <= measureIndex);
 
     data.partList.forEach((part, partIndex) => {
       let notes = tracks[partIndex].notes;
-      let curTime = measureTimes[measureIndex];
+      let curTime = measures[measureIndex].time;
 
       measure.parts[part.id].forEach(info => {
         switch(info._class) {
@@ -175,7 +186,7 @@ const parseNotes = (data: any, header: Header, measureTimes: number[], tracks: T
             break;
           }
           case "Note": {
-            parseNote(info, notes, curDivisionTime, tieNotes[partIndex], curTime);
+            parseNote(info, notes, tieNotes[partIndex], curDivisionTime, curTime, curVelocity.dynamics);
             //move time forward except "chord"
             if (info.chord === undefined) {
               curTime += info.duration * curDivisionTime;
@@ -189,7 +200,7 @@ const parseNotes = (data: any, header: Header, measureTimes: number[], tracks: T
   });
 }
 
-const parseNote = (noteInfo: any, notes: Note[], divisionTime: number, tieNotes: Note[], curTime: number): void => {
+const parseNote = (noteInfo: any, notes: Note[], tieNotes: Note[], divisionTime: number, time: number, velocity: number): void => {
   if (!noteInfo.pitch) {
     return;
   }
@@ -214,8 +225,9 @@ const parseNote = (noteInfo: any, notes: Note[], divisionTime: number, tieNotes:
     note = {};
   }
 
-  note.time = noteInfo.chord ? notes[notes.length - 1].time : curTime;
+  note.time = noteInfo.chord ? notes[notes.length - 1].time : time;
   note.duration = noteInfo.duration * divisionTime;
+  note.velocity = velocity;
   
   let noteName: string = noteInfo.pitch.step.toUpperCase() + noteInfo.pitch.octave;
   if (noteInfo.pitch.alter) {

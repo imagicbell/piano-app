@@ -19,19 +19,26 @@ export type KeySignature = {
   measures?: number,
 }
 
+export type Velocity = {
+  dynamics: number, //percentage of the standard MusicXML forte velocity
+  time?: number,
+  measures?: number,
+}
+
 export type Header = {
-  name: string;
-	tempos: Tempo[];
-	timeSignatures: TimeSignature[];
-	keySignatures: KeySignature[];
+  name: string,
+  tempos: Tempo[],
+	timeSignatures: TimeSignature[],
+  keySignatures: KeySignature[],
+  velocities: Velocity[],
 }
 
 export type Note = {
-  midi: number;
-	name: string;
-  time: number;
-  duration: number;
-  velocity?: number;
+  midi: number,
+	name: string,
+  time: number,
+  duration: number,
+  velocity?: number,
 }
 
 export type Instrument = {
@@ -40,7 +47,12 @@ export type Instrument = {
 }
 
 export type Track = {
-  name: string;
-	notes: Note[];
-	instrument: Instrument;
+  name: string,
+	notes: Note[],
+	instrument: Instrument,
+}
+
+export type Measure = {
+  id: number,
+  time: number, //start time in seconds of the measure
 }
