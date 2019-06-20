@@ -4,13 +4,14 @@ import { connect } from 'react-redux';
 import classNames from 'classnames';
 import styles from './style.css';
 import { type NoteType, notes } from 'config/notes';
+import { type ActiveKey } from './type';
 
 const WHITE_KEY_WIDTH = 2.222;
 
 type KeyboardProps = {
   playKey: (note: string) => void,
   stopKey: (note: string) => void,
-  activeKeys: String[],
+  activeKeys: ActiveKey[],
 }
 
 class Keyboard extends React.Component<KeyboardProps> {
@@ -62,7 +63,7 @@ class Keyboard extends React.Component<KeyboardProps> {
           this.whiteKeys.map(key => {
             const className = classNames({
               'key-white': true,
-              'key-white-active': this.props.activeKeys.findIndex(k => k === key.ansi) >= 0
+              'key-white-active': this.props.activeKeys.findIndex(k => k.name === key.ansi) >= 0
             });
             return (
               <div key={key.midi} className={className} style={this.whiteKeyStyle}
@@ -76,7 +77,7 @@ class Keyboard extends React.Component<KeyboardProps> {
           this.blackKeys.map((key, index) => {
             const className = classNames({
               'key-black': true,
-              'key-black-active': this.props.activeKeys.findIndex(k => k === key.ansi) >= 0
+              'key-black-active': this.props.activeKeys.findIndex(k => k.name === key.ansi) >= 0
             });
             return (
               <div key={key.midi} className={className} style={this.blackKeyStyle(key, index)}
