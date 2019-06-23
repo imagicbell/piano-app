@@ -14,6 +14,19 @@ import { notes as noteMap } from 'config/notes';
 
 const KeySignatureKeys = ["Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#"];
 
+type RepeatEnding = {
+  startMeasure: number,
+  stopMeasure: number,
+  backwardMeasure: number,
+  number: number,
+}
+
+type RepeatMeta = {
+  forwardStartMeasure: number,
+  forwardEndMeasure: number,
+  endings: RepeatEnding[],
+}
+
 export const parseHeader = (data: any): [Header, Measure[]] => {
   const header: Header = {
     name: '',
@@ -46,12 +59,15 @@ const parseHeaderName = (data: any): string => {
 }
 
 const parseHeaderInfo = (data: any, header: Header, measures: Measure[]): void => {
-  let curTempo;
-  let curTimeSignature;   
+  let curTempo: Tempo;
+  let curTimeSignature: TimeSignature;   
+  let repeatMeta: RepeatMeta;
   //check the first part for the header data(just like the Tonejs/Midi)
   const partId = data.partList[0].id;
-  
-  data.measures.forEach((measure, measureIndex) => {
+  let measureIndex = 0;
+
+  while (measureIndex < data.measures.length) {
+    //measure start time
     let measureTime = 0;
     if (measureIndex > 0) {
       if (!curTempo || !curTimeSignature) {
@@ -62,7 +78,9 @@ const parseHeaderInfo = (data: any, header: Header, measures: Measure[]): void =
     }
     measures[measureIndex] = { id: measureIndex, time: measureTime }
 
-    measure.parts[partId].forEach(info => {
+    const infoArray = data.measures[measureIndex].parts[partId];
+    for (let i = 0; i < infoArray.length; i++) {
+      const info = infoArray[i];
       if (info._class === "Attributes") {
         //key signatures
         if (info.keySignatures && info.keySignatures.length > 0) {
@@ -74,6 +92,7 @@ const parseHeaderInfo = (data: any, header: Header, measures: Measure[]): void =
           header.timeSignatures.push(curTimeSignature);
         }
       } else if (info._class === "Sound" || info._class === "Direction") {
+        //tempo, velocity
         let [tempo, velocity] = parseSound(info.sound ? info.sound : info, measureIndex, measureTime);
         if (tempo) {
           curTempo = tempo;
@@ -82,14 +101,23 @@ const parseHeaderInfo = (data: any, header: Header, measures: Measure[]): void =
         if (velocity) {
           header.velocities.push(velocity);
         }
+      } else if (info._class === "Barline") {
+        //repeat
+        repeatMeta = parseRepeatMeta(info, measureIndex, repeatMeta);
+        //delete after parsing, in case of redundant parse 
+        infoArray.splice(i, 1);
+        i--;
       }
-    });
+    }
 
     //calculate tempo's bpm
     if (curTempo.bpm === undefined) {
       curTempo.bpm = (curTimeSignature.beatType / 4) * curTempo.tempo;
     }
-  });
+
+    doRepeat(data.measures, repeatMeta);
+    measureIndex++;
+  }
 }
 
 const parseSound = (soundInfo: any, measures: number, time: number): [Tempo, Velocity] => {
@@ -128,6 +156,57 @@ const parseKeySignature = (ksInfo: any, measures: number, time: number): KeySign
     measures: measures,
     time: time
   };
+}
+
+const parseRepeatMeta = (repeatInfo: any, measures: number, repeatMeta: RepeatMeta): RepeatMeta => {
+  repeatMeta = repeatMeta || {};
+
+  if (repeatInfo.repeat) {
+    if (repeatInfo.repeat.direction === 1) {
+      repeatMeta.forwardStartMeasure = measures;
+    } else {
+      repeatMeta.endings[repeatMeta.endings.length - 1].backwardMeasure = measures;
+    }
+  }
+  if (repeatInfo.ending) {
+    if (repeatInfo.ending.type === 0) {
+      repeatMeta.endings = repeatMeta.endings || [];
+      repeatMeta.endings.push({
+        startMeasure: measures,
+        number: repeatInfo.ending.number,
+      });
+      if (repeatInfo.ending.number === 1) {
+        repeatMeta.forwardEndMeasure = measures - 1;
+      }
+    } else {
+      repeatMeta.endings[repeatMeta.endings.length - 1].stopMeasure = measures;
+    }
+  }
+
+  return repeatMeta;
+}
+
+/**
+ * when meet a backward measure, insert the measures from the forward measure to the measure before the first ending.
+ */
+const doRepeat = (measures: any[], repeatMeta: RepeatMeta) => {
+  if (!repeatMeta || !repeatMeta.endings || repeatMeta.endings.length === 0) {
+    return;
+  }
+  const ending = repeatMeta.endings[0];
+  if (ending.stopMeasure === undefined) {
+    return;
+  }
+  repeatMeta.endings.shift();
+  if (ending.backwardMeasure === undefined) {
+    return;
+  }
+
+  let measureIndex = ending.backwardMeasure + 1;
+  for (let i = repeatMeta.forwardStartMeasure; i <= repeatMeta.forwardEndMeasure; i++) {
+    measures.splice(measureIndex, 0, { ...measures[i] });
+    measureIndex++;
+  }
 }
 
 export const parseTracks = (data: any, header: Header, measures: Measure[]) : [Track[], number] => {
