@@ -178,6 +178,9 @@ const parseRepeatMeta = (repeatInfo: any, measures: number, repeatMeta: RepeatMe
       if (repeatInfo.ending.number === 1) {
         repeatMeta.forwardEndMeasure = measures - 1;
       }
+      if (repeatMeta.forwardStartMeasure === undefined) {
+        repeatMeta.forwardStartMeasure = 0;
+      }
     } else {
       repeatMeta.endings[repeatMeta.endings.length - 1].stopMeasure = measures;
     }

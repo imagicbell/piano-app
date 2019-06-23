@@ -30,7 +30,7 @@ export const ReadMusicXml = async (content: string) => {
   if (str.substr(0, 5) === "<?xml") {
     // Parse the string representing an xml file
     const data = parseScore(str);
-    console.log("musicxml read \n", data);
+    console.log("musicxml read \n", JSON.stringify(data));
     return data;
   }
 
