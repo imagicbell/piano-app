@@ -39,6 +39,7 @@ export const parseHeader = (data: any): [Header, Measure[]] => {
 
   header.name = parseHeaderName(data);
   parseHeaderInfo(data, header, measures);
+  pruneHeader(header);
 
   return [header, measures];
 }
@@ -94,7 +95,8 @@ const parseHeaderInfo = (data: any, header: Header, measures: Measure[]): void =
       } else if (info._class === "Sound" || info._class === "Direction") {
         //tempo, velocity
         let [tempo, velocity] = parseSound(info.sound ? info.sound : info, measureIndex, measureTime);
-        if (tempo) {
+        //issue: there may exists multiple tempos in one measure?
+        if (tempo && !(curTempo && curTempo.measures === tempo.measures)) {
           curTempo = tempo;
           header.tempos.push(tempo);
         }
@@ -187,6 +189,35 @@ const parseRepeatMeta = (repeatInfo: any, measures: number, repeatMeta: RepeatMe
   }
 
   return repeatMeta;
+}
+
+const pruneHeader = (header: Header) => {
+  for (let i = 1; i < header.tempos.length; i++) {
+    if (header.tempos[i].bpm === header.tempos[i - 1].bpm) {
+      header.tempos.splice(i, 1);
+      i--;
+    }
+  }
+  for (let i = 1; i < header.timeSignatures.length; i++) {
+    if (header.timeSignatures[i].beats === header.timeSignatures[i - 1].beats &&
+        header.timeSignatures[i].beatType === header.timeSignatures[i - 1].beatType) {
+      header.timeSignatures.splice(i, 1);
+      i--;
+    }
+  }
+  for (let i = 1; i < header.keySignatures.length; i++) {
+    if (header.keySignatures[i].key === header.keySignatures[i - 1].key &&
+        header.keySignatures[i].scale === header.keySignatures[i - 1].scale) {
+      header.keySignatures.splice(i, 1);
+      i--;
+    }
+  }
+  for (let i = 1; i < header.velocities.length; i++) {
+    if (header.velocities[i].dynamics === header.velocities[i - 1].dynamics) {
+      header.velocities.splice(i, 1);
+      i--;
+    }
+  }
 }
 
 /**

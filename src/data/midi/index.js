@@ -37,7 +37,7 @@ export default class Midi {
       toneMidi = new ToneMidi(content);
     }
 
-    // console.log("tonejs midi\n", JSON.stringify(toneMidi, undefined, 2));
+    console.log("tonejs midi\n", JSON.stringify(toneMidi, undefined, 2));
     
     [this.header, this.measures] = parseHeader_tonemidi(toneMidi);
     this.tracks = parseTracks_tonemidi(toneMidi);
