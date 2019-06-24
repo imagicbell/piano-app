@@ -1,7 +1,7 @@
 .keyboard-container {
-  width: 90%; 
+  width: 96%; 
   height: 180px;
-  margin: 0px auto; 
+  margin: 10px auto; 
   box-shadow: 2px 2px 10px 2px #acacac;
 
   background-color: rgb(56, 53, 53);

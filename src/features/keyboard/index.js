@@ -6,7 +6,7 @@ import styles from './style.css';
 import { type NoteType, notes } from 'config/notes';
 import { type ActiveKey } from './type';
 
-const WHITE_KEY_WIDTH = 2.222;
+const WHITE_KEY_WIDTH = 1.923;
 
 type KeyboardProps = {
   playKey: (note: string) => void,

@@ -4,6 +4,7 @@ import { ReadMusicXml } from './musicxmlReader';
 import { parseHeader as parseHeader_musicxml, parseTracks as parseTracks_musicxml } from './musicxmlParser';
 import { parseHeader as parseHeader_tonemidi, parseTracks as parseTracks_tonemidi } from './tonemidiParser';
 import { type Header, type Track, type Measure } from './type';
+import { validURL } from 'utils/tools';
 
 export default class Midi {
   header: Header;
@@ -31,7 +32,7 @@ export default class Midi {
    */
   loadMidi = async (content: string | ArrayBuffer) => {
     let toneMidi: ToneMidi;
-    if (typeof content === "string" && content.endsWith(".mid")) {
+    if (typeof content === "string" && validURL(content)) {
       toneMidi = await ToneMidi.fromUrl(content);
     } else {
       toneMidi = new ToneMidi(content);
