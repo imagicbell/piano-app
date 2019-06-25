@@ -10,7 +10,7 @@ function App() {
     <div>
       <Piano />
       <MusicInput />
-      {/* <Midiplayer /> */}
+      <Midiplayer />
       {/* <MusicSheet /> */}
     </div>
   );

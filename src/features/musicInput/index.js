@@ -1,8 +1,10 @@
 import React from 'react';
+import { connect } from 'react-redux';
 import FileDropzone from './fileDropzone';
 import styles from './style.css';
 import Midi from 'data/midi';
 import { validURL } from 'utils/tools';
+import { changeMidi } from 'features/midiplayer/action';
 
 const FILE_FORMATS = {
   musicXml: 'MusicXML',
@@ -11,6 +13,7 @@ const FILE_FORMATS = {
 const FILE_EXTENSIONS = ['.mxl', '.musicxml', '.mid'];
 
 type MusicInputProps = {
+  dispatch: (a: *) => *
 }
 
 type MusicInputState = {
@@ -37,6 +40,7 @@ class MusicInput extends React.Component<MusicInputProps, MusicInputState> {
       ...this.state,
       midiJson: JSON.stringify(this.midi, undefined, 2),
     });
+    this.props.dispatch(changeMidi(this.midi));
   }
 
   onChangeInputType = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -120,4 +124,4 @@ class MusicInput extends React.Component<MusicInputProps, MusicInputState> {
   }
 }
 
-export default MusicInput;
+export default connect()(MusicInput);

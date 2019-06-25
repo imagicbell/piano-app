@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Tone from 'tone';
 import SampleLibrary from 'libs/Tonejs-Instruments';
 import { Sleep } from 'utils/timer';
-import FileDropzone from 'features/musicInput/fileDropzone';
 import { triggerKey } from 'features/keyboard/action';
 import styles from './style.css';
 import Midi from 'data/midi';
@@ -17,12 +16,11 @@ type MidiNote = {
 }
 
 type MidiplayerProps = {
-  dispatch: (a: *) => *
+  midi: Midi,
+  dispatch: (a: *) => *,
 }
 
 type MidiplayerState = {
-  midiUrl: String,
-  midiJson: String,
   isMidiReady: Boolean,
   originBpm: Number,
   playbackRate: Number,
@@ -32,15 +30,12 @@ type MidiplayerState = {
 class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
   state: MidiplayerState = {
-    midiUrl: '',
-    midiJson: '',
     isMidiReady: false,
     orignBpm: 0,
     playbackRate: 1,
     playNoteIndexes: [],
   }
 
-  midi: Midi = null;
   pianoSynths: any[] = [];
   noteEvents: Tone.Event[] = [];
 
@@ -54,7 +49,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   get currentNotes(): MidiNote[] {
     let notes = [];
     this.state.playNoteIndexes.forEach((noteIndex, trackIndex) => {
-      const note = this.midi.tracks[trackIndex].notes[noteIndex];
+      const note = this.props.midi.tracks[trackIndex].notes[noteIndex];
       if (note) {
         notes.push({ note, noteIndex, trackIndex });
       }
@@ -65,7 +60,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   get nextNotes(): MidiNote[] {
     let notes = [];
     this.state.playNoteIndexes.forEach((noteIndex, trackIndex) => {
-      const note = this.midi.tracks[trackIndex].notes[noteIndex + 1];
+      const note = this.props.midi.tracks[trackIndex].notes[noteIndex + 1];
       if (note) {
         notes.push({ note, noteIndex: noteIndex + 1, trackIndex });
       }
@@ -76,7 +71,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   get previousNotes(): MidiNote[] {
     let notes = [];
     this.state.playNoteIndexes.forEach((noteIndex, trackIndex) => {
-      const note = this.midi.tracks[trackIndex].notes[noteIndex - 1];
+      const note = this.props.midi.tracks[trackIndex].notes[noteIndex - 1];
       if (note) {
         notes.push({ note, noteIndex: noteIndex - 1, trackIndex });
       }
@@ -88,22 +83,11 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     Tone.Transport.on("stop", () => {
       this.setState({
         ...this.state,
-        playNoteIndexes: this.midi.tracks.map(track => -1),  
+        playNoteIndexes: this.props.midi.tracks.map(track => -1),  
       });
     });
 
     this.frameId = requestAnimationFrame(this.update);
-
-    this.midi = new Midi();
-    this.midi.loadMusicXml("/res/midi/Fur_Elise.mxl").then(() => {
-      this.setState({
-        ...this.state,
-        midiJson: JSON.stringify(this.midi, undefined, 2),
-      });
-      this.onChangeMidi();
-    });
-
-    // this.midi.loadMidi("/res/midi/Fur_Elise.mid");
   }
 
   componentWillUnmount() {
@@ -124,6 +108,13 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     }
 
     this.frameId = requestAnimationFrame(this.update);  
+  }
+
+  componentWillReceiveProps(nextProps) {
+    console.log(">>>> componentWillReceiveProps", this.props.midi , nextProps.midi)
+    if (this.props.midi !== nextProps.midi) {
+      this.onChangeMidi(nextProps.midi);
+    }
   }
 
   loadSynths = async (synthNum: Number) => {
@@ -154,18 +145,53 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     }
   }
 
+  onChangeMidi = (midi: Midi) => {
+    if (!midi) {
+      this.cleanSchedule();
+    } else {
+      const loadSynthNum = midi.tracks.length - this.pianoSynths.length;
+      if (loadSynthNum >= 0) {
+        this.loadSynths(loadSynthNum).then(() => this.scheduleMidiPlay(midi));
+      } else {
+        this.scheduleMidiPlay(midi);
+      }
+    }
+  }
+
   scheduleMidiPlay = (midi: Midi) => {
     this.cleanSchedule();
 
     console.log("midiplayer: schedule play. track count: ", midi.tracks.length);
 
-    Tone.Transport.bpm.value = midi.header.tempos && midi.header.tempos.length > 0 ? midi.header.tempos[0].bpm : 120;
-    Tone.Transport.timeSignature = midi.header.timeSignatures[0].timeSignature;
+    //default to 120, in case of no tempo provided in midi file, which is unusual.
+    Tone.Transport.bpm.value = 120;
+    midi.header.tempos.forEach((tempo, tempoIndex) => {
+      if (tempoIndex === 0) {
+        Tone.Transport.bpm.value = tempo.bpm;
+      } else {
+        const e = new Tone.Event(time => {
+          Tone.Transport.bpm.value = tempo.bpm;
+          this.setState({ ...this.state, originBpm: tempo.bpm });
+        });
+        e.start(tempo.time);
+        this.noteEvents.push(e);
+      }
+    });
+
+    midi.header.timeSignatures.forEach((ts, tsIndex) => {
+      if (tsIndex === 0) {
+        Tone.Transport.timeSignature = [ts.beats, ts.beatType];
+      } else {
+        const e = new Tone.Event(time => Tone.Transport.timeSignature = [ts.beats, ts.beatType]);
+        e.start(ts.time);
+        this.noteEvents.push(e);
+      }
+    });
 
     midi.tracks.forEach((track, trackIndex) => {
       const synth = this.pianoSynths[trackIndex];
       track.notes.forEach((note, noteIndex) => {
-        const e = new Tone.Event((time) => {
+        const e = new Tone.Event(time => {
           synth.triggerAttackRelease(note.name, note.duration, time, note.velocity);
           this.props.dispatch(triggerKey(note.name, note.duration));
           
@@ -209,53 +235,6 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       ...this.state,
       isMidiReady: false,
     });
-  }
-
-  onChangeMidi = () => {
-    if (!this.midi) {
-      this.cleanSchedule();
-    } else {
-      const loadSynthNum = this.midi.tracks.length - this.pianoSynths.length;
-      if (loadSynthNum >= 0) {
-        this.loadSynths(loadSynthNum).then(() => this.scheduleMidiPlay(this.midi));
-      } else {
-        this.scheduleMidiPlay(this.midi);
-      }
-    }
-  }
-
-  onInputUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    if (!url) {
-      return;
-    }
-
-    this.midi = new Midi();
-    this.setState({
-      ...this.state,
-      midiUrl: url,
-      midiJson: "Parsing midi file..."
-    });
-
-    this.midi.loadMusicXml(url).then(() => {
-      this.setState({
-        ...this.state,
-        midiJson: JSON.stringify(this.midi, undefined, 2),
-      });
-      this.onChangeMidi();
-    })
-  }
-
-  onDropFile = (fileContent: String) => {
-    // this.midi = new ToneMidi(fileContent);
-
-    // this.setState({
-    //   ...this.state,
-    //   midiUrl: '',
-    //   midiJson: JSON.stringify(this.midi, undefined, 2),
-    // });
-
-    // this.onChangeMidi();
   }
 
   onChangePlaybackRate = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -372,12 +351,6 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   render() {
     return (
       <div>
-        <input type="text" placeholder="input midi file's url here..."
-               value={this.state.midiUrl}
-               onChange={this.onInputUrl} />
-        <FileDropzone onDropFile={this.onDropFile}/>
-        <textarea className="json-area" placeholder="json output..." value={this.state.midiJson} readOnly />
-
         <div className="slidecontainer">
           <span>{`Tempo:  ${this.state.playbackRate}`}</span>  
           <input type="range" min="0.1" max="4" step="0.1" 
@@ -417,4 +390,8 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 }
 
-export default connect()(Midiplayer);
+export default connect(
+  state => ({
+    midi: state.midiplayer.midi
+  })
+)(Midiplayer);

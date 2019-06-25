@@ -1,6 +1,6 @@
 //@flow
 
-export const triggerKey = (key: String, duration: Number) => {
+export const triggerKey = (key: string, duration: number) => {
   return dispatch => {
     dispatch({
       type: 'ACTIVE_KEY',
