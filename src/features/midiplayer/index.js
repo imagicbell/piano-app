@@ -110,8 +110,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     this.frameId = requestAnimationFrame(this.update);  
   }
 
-  componentWillReceiveProps(nextProps) {
-    console.log(">>>> componentWillReceiveProps", this.props.midi , nextProps.midi)
+  componentWillReceiveProps(nextProps: MidiplayerProps) {
     if (this.props.midi !== nextProps.midi) {
       this.onChangeMidi(nextProps.midi);
     }
@@ -392,6 +391,6 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
 export default connect(
   state => ({
-    midi: state.midiplayer.midi
+    midi: state.musicInput.midi
   })
 )(Midiplayer);

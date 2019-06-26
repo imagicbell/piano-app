@@ -4,13 +4,13 @@ import FileDropzone from './fileDropzone';
 import styles from './style.css';
 import Midi from 'data/midi';
 import { validURL } from 'utils/tools';
-import { changeMidi } from 'features/midiplayer/action';
+import { changeMidi, changeMusicXml } from './action';
 
-const FILE_FORMATS = {
+export const FILE_FORMATS = {
   musicXml: 'MusicXML',
   midi: 'Midi'
 };
-const FILE_EXTENSIONS = ['.mxl', '.musicxml', '.mid'];
+export const FILE_EXTENSIONS = ['.mxl', '.musicxml', '.mid'];
 
 type MusicInputProps = {
   dispatch: (a: *) => *
@@ -35,11 +35,12 @@ class MusicInput extends React.Component<MusicInputProps, MusicInputState> {
   componentDidMount() {
   }
 
-  onLoadMidi = () => {
+  onLoadMidi = (inputContent: string | ArrayBuffer) => {
     this.setState({
       ...this.state,
       midiJson: JSON.stringify(this.midi, undefined, 2),
     });
+
     this.props.dispatch(changeMidi(this.midi));
   }
 
@@ -53,26 +54,27 @@ class MusicInput extends React.Component<MusicInputProps, MusicInputState> {
 
   onInputUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
+    const valid = url && validURL(url);
+    
     this.setState({
       ...this.state,
       inputUrl: url,
+      midiJson: valid ? "Parsing music file..." : '',
     });
 
-    if (!url || !validURL(url)) {
+    if (!valid) {
+      this.props.dispatch(changeMidi(null));
+      this.props.dispatch(changeMusicXml(null));
       return;
     }
-
-    this.setState({
-      ...this.state,
-      inputUrl: url,
-      midiJson: "Parsing music file...",
-    });
 
     this.midi = new Midi();
     if (this.state.inputType === FILE_FORMATS.midi) {
       this.midi.loadMidi(url).then(this.onLoadMidi);
+      this.props.dispatch(changeMusicXml(null));
     } else {
       this.midi.loadMusicXml(url).then(this.onLoadMidi);
+      this.props.dispatch(changeMusicXml(url));
     }
   }
 
@@ -85,9 +87,11 @@ class MusicInput extends React.Component<MusicInputProps, MusicInputState> {
     this.midi = new Midi();
     if (fileName.endsWith(".mid")) {
       this.midi.loadMidi(fileContent).then(this.onLoadMidi);
+      this.props.dispatch(changeMusicXml(null));
     } else {
       const strContent = String.fromCharCode.apply(null, new Uint8Array(fileContent));
       this.midi.loadMusicXml(strContent).then(this.onLoadMidi);
+      this.props.dispatch(changeMusicXml(strContent));
     }
   }
 

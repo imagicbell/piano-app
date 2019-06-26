@@ -8,12 +8,13 @@ type FileDropzoneProps = {
 }
 
 const FileDropzone = (props: FileDropzoneProps) => {
+  const { fileFilters, onDropFile } = props;
   const onDrop = useCallback(acceptedFiles => {
     console.log("on drop files: ", acceptedFiles);
 
     //only accept one file
     const file = acceptedFiles[0];
-    if (props.fileFilters.findIndex(filter => file.name.endsWith(filter)) < 0) {
+    if (fileFilters.findIndex(filter => file.name.endsWith(filter)) < 0) {
       return;
     }
 
@@ -21,16 +22,16 @@ const FileDropzone = (props: FileDropzoneProps) => {
     reader.onabort = () => console.log('file reading was aborted')
     reader.onerror = () => console.log('file reading has failed')
     reader.onload = () => {
-      props.onDropFile && props.onDropFile(file.name, reader.result);
+      onDropFile && onDropFile(file.name, reader.result);
     }
     reader.readAsArrayBuffer(file);
-  }, []);
+  }, [fileFilters, onDropFile]);
 
   const {getRootProps, getInputProps, isDragActive, acceptedFiles} = useDropzone({onDrop});
   let acceptedFileName = null;
   if (acceptedFiles.length > 0) {
     acceptedFileName = acceptedFiles[0].name;
-    if (props.fileFilters.findIndex(filter => acceptedFileName.endsWith(filter)) < 0) {
+    if (fileFilters.findIndex(filter => acceptedFileName.endsWith(filter)) < 0) {
       acceptedFileName = null;
     }
   }

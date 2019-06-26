@@ -11,7 +11,7 @@ function App() {
       <Piano />
       <MusicInput />
       <Midiplayer />
-      {/* <MusicSheet /> */}
+      <MusicSheet />
     </div>
   );
 }

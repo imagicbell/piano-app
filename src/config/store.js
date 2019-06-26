@@ -4,11 +4,11 @@ import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
 
 import keyboardReducer from 'features/keyboard/reducer';
-import midiplayerReducer from 'features/midiplayer/reducer';
+import musicInputReducer from 'features/musicInput/reducer';
 
 const rootReducer = combineReducers({
   keyboard: keyboardReducer,
-  midiplayer: midiplayerReducer,
+  musicInput: musicInputReducer,
 })
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
