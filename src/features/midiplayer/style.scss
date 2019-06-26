@@ -1,0 +1,59 @@
+.control-btn-container {
+  display: inline-block;
+}
+
+.play-btn, .stop-btn {
+
+}
+
+.step-foward-btn, .step-backward-btn {
+  
+}
+
+
+$thumb-color: #0199ff;
+$thumb-hover-color: #55c2ff;
+$thumb-size: 20px;
+$thumb-margin-top: -2px;
+
+.slider-control {
+  display: block;
+  margin: 10px auto;
+  appearance: none;
+  width: 96%;
+  height: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:focus, &:hover {
+    outline: none;
+    border: none;
+  }
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    height: $thumb-size;
+    width: $thumb-size;
+    margin-top: $thumb-margin-top;
+    border-radius: 100%;  
+    background-color: $thumb-color; 
+
+    &:focus, &:hover {
+      background-color: $thumb-hover-color;
+    }
+  }
+
+  &::-moz-range-thumb {
+    appearance: none;
+    height: $thumb-size;
+    width: $thumb-size;
+    margin-top: $thumb-margin-top;
+    border-radius: 100%;  
+    background-color: $thumb-color; 
+    border: none;
+
+    &:focus, &:hover {
+      background-color: $thumb-hover-color;
+    }
+  }
+}

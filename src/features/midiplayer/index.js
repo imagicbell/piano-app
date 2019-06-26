@@ -4,7 +4,7 @@ import Tone from 'tone';
 import SampleLibrary from 'libs/Tonejs-Instruments';
 import { Sleep } from 'utils/timer';
 import { triggerKey } from 'features/keyboard/action';
-import styles from './style.css';
+import styles from './style.scss';
 import Midi from 'data/midi';
 
 const PIANO_SYNTH_NUM = 3;
@@ -25,6 +25,7 @@ type MidiplayerState = {
   originBpm: Number,
   playbackRate: Number,
   playNoteIndexes: Number[],
+  playProgress: number,
 }
 
 class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
@@ -34,6 +35,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     orignBpm: 0,
     playbackRate: 1,
     playNoteIndexes: [],
+    playProgress: 0,
   }
 
   pianoSynths: any[] = [];
@@ -347,6 +349,14 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     Tone.Transport.pause(`+${endTime - startTime}`); 
   }
 
+  onChangePlayProgress = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const progress = parseFloat(e.target.value);
+    this.setState({
+      ...this.state,
+      playProgress: progress
+    });
+  }
+
   render() {
     return (
       <div>
@@ -383,6 +393,12 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
             {'<<'}
           </button>
         </div>
+
+        <input className="slider-control"
+               type="range" min="0" max="100"
+               value={this.state.playProgress}
+               onChange={this.onChangePlayProgress}
+               style={{backgroundImage: `linear-gradient(to right, #0199ff ${this.state.playProgress}%, #cfcfcf, ${this.state.playProgress}%, #cfcfcf)`}} />
 
       </div>
     )

@@ -6,6 +6,7 @@
     "@tonejs/midi": "^2.0.0",
     "classnames": "^2.2.6",
     "musicxml-interfaces": "^0.0.20",
+    "node-sass": "^4.12.0",
     "opensheetmusicdisplay": "^0.7.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
