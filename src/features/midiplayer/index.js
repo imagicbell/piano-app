@@ -109,6 +109,13 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       this.forceUpdate();
     }
 
+    if (this.playState === "started") {
+      this.setState({
+        ...this.state,
+        playProgress: (Tone.Transport.seconds / this.props.midi.duration * 100).toFixed(),
+      });
+    }
+
     this.frameId = requestAnimationFrame(this.update);  
   }
 
@@ -238,16 +245,6 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     });
   }
 
-  onChangePlaybackRate = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const curPlaybackRate = parseFloat(e.target.value);
-    Tone.Transport.bpm.value = this.state.originBpm * curPlaybackRate;
-
-    this.setState({
-      ...this.state,
-      playbackRate: curPlaybackRate
-    });
-  }
-
   get playBtnText() {
     switch(this.playState) {
       case "stopped" : return "Play";
@@ -350,24 +347,31 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 
   onChangePlayProgress = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const progress = parseFloat(e.target.value);
+    const progress = parseFloat(e.target.value).toFixed();
     this.setState({
       ...this.state,
       playProgress: progress
+    });
+
+    if (this.playState === "started") {
+      Tone.Transport.pause();
+    }
+    Tone.Transport.position = Tone.Time(this.props.midi.duration * progress * 0.01).toBarsBeatsSixteenths();
+  }
+
+  onChangePlaybackRate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const curPlaybackRate = parseFloat(e.target.value);
+    Tone.Transport.bpm.value = this.state.originBpm * curPlaybackRate;
+
+    this.setState({
+      ...this.state,
+      playbackRate: curPlaybackRate
     });
   }
 
   render() {
     return (
       <div>
-        <div className="slidecontainer">
-          <span>{`Tempo:  ${this.state.playbackRate}`}</span>  
-          <input type="range" min="0.1" max="4" step="0.1" 
-                 value={this.state.playbackRate} 
-                 onChange={this.onChangePlaybackRate}/>
-          <span>{`BPM:  ${Tone.Transport.bpm.value}`}</span>
-        </div>
-
         <div className="control-btn-container">
           <button className="play-btn"
                   disabled={!this.state.isMidiReady}
@@ -399,6 +403,15 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
                value={this.state.playProgress}
                onChange={this.onChangePlayProgress}
                style={{backgroundImage: `linear-gradient(to right, #0199ff ${this.state.playProgress}%, #cfcfcf, ${this.state.playProgress}%, #cfcfcf)`}} />
+
+        <div className="tempo-container">
+          <span>{`Tempo:  ${this.state.playbackRate}`}</span>  
+          <input type="range" min="0.1" max="4" step="0.1" 
+                 disabled={!this.state.isMidiReady}
+                 value={this.state.playbackRate} 
+                 onChange={this.onChangePlaybackRate}/>
+          <span>{`BPM:  ${Tone.Transport.bpm.value.toFixed()}`}</span>
+        </div>
 
       </div>
     )

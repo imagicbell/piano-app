@@ -1,15 +1,27 @@
 .control-btn-container {
-  display: inline-block;
+  display: flex;
+  justify-content: center;
+  margin: 10px;
 }
 
-.play-btn, .stop-btn {
+button {
+  width: 50px;
+  height: 25px;
+  margin: 0 4px;
+  border: 1px solid grey;
+  border-radius: 4px;
+  color: black;
+  font-size: 14px;
 
+  &:disabled {
+    color: rgb(150, 150, 150);
+    border-color: rgb(180, 180, 180);
+  }
 }
 
-.step-foward-btn, .step-backward-btn {
-  
+.tempo-container {
+  margin: 10px;
 }
-
 
 $thumb-color: #0199ff;
 $thumb-hover-color: #55c2ff;
