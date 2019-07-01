@@ -6,8 +6,14 @@ import { Sleep } from 'utils/timer';
 import { triggerKey } from 'features/keyboard/action';
 import styles from './style.scss';
 import Midi from 'data/midi';
+import 'utils/extension';
 
 const PIANO_SYNTH_NUM = 3;
+const PLAYSTATE = {
+  START: "started",
+  STOP: "stopped",
+  PAUSE: "paused"
+}
 
 type MidiNote = {
   note: any,  //note in midi file
@@ -42,10 +48,14 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   noteEvents: Tone.Event[] = [];
 
   frameId: Number;
-  lastPlayState: String = "stopped";
+  lastPlayState: String = PLAYSTATE.STOP;
 
   get playState() {
     return Tone.Transport.state;
+  }
+
+  get totalDuration() {
+    return this.props.midi.duration;
   }
 
   get currentNotes(): MidiNote[] {
@@ -109,10 +119,10 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       this.forceUpdate();
     }
 
-    if (this.playState === "started") {
+    if (this.playState === PLAYSTATE.START) {
       this.setState({
         ...this.state,
-        playProgress: (Tone.Transport.seconds / this.props.midi.duration * 100).toFixed(),
+        playProgress: (Tone.Transport.seconds / this.totalDuration * 100).toFixed(),
       });
     }
 
@@ -247,9 +257,9 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
   get playBtnText() {
     switch(this.playState) {
-      case "stopped" : return "Play";
-      case "started" : return "Pause";
-      case "paused" : return "Resume";
+      case PLAYSTATE.STOP : return "Play";
+      case PLAYSTATE.START : return "Pause";
+      case PLAYSTATE.PAUSE : return "Resume";
       default: return "Play";
     }
   }
@@ -279,7 +289,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 
   clickStepForwardBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    if (this.playState !== "paused" && this.playState !== "stopped")
+    if (this.playState !== PLAYSTATE.PAUSE && this.playState !== PLAYSTATE.STOP)
       return;
 
     let nextNotes = this.nextNotes;
@@ -311,7 +321,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 
   clickStepBackwardBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    if (this.playState !== "paused")
+    if (this.playState !== PLAYSTATE.PAUSE)
       return;
       
     let preNotes = this.previousNotes;
@@ -346,6 +356,13 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     Tone.Transport.pause(`+${endTime - startTime}`); 
   }
 
+  get progressText() {
+    if (!this.state.isMidiReady) {
+      return '';
+    }
+    return Tone.Transport.seconds.secondsToTime("mm:ss") + "/" + this.totalDuration.secondsToTime("mm:ss");
+  }
+
   onChangePlayProgress = (e: React.ChangeEvent<HTMLInputElement>) => {
     const progress = parseFloat(e.target.value).toFixed();
     this.setState({
@@ -353,10 +370,10 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       playProgress: progress
     });
 
-    if (this.playState === "started") {
+    if (this.playState === PLAYSTATE.START) {
       Tone.Transport.pause();
     }
-    Tone.Transport.position = Tone.Time(this.props.midi.duration * progress * 0.01).toBarsBeatsSixteenths();
+    Tone.Transport.position = Tone.Time(this.totalDuration * progress * 0.01).toBarsBeatsSixteenths();
   }
 
   onChangePlaybackRate = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -373,29 +390,29 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     return (
       <div>
         <div className="control-btn-container">
-          <button className="play-btn"
-                  disabled={!this.state.isMidiReady}
+          <button disabled={!this.state.isMidiReady}
                   onClick={this.clickPlayBtn}>
             {this.playBtnText}
           </button>
 
-          <button className="stop-btn"
-                  hidden={!this.state.isMidiReady}
+          <button hidden={!this.state.isMidiReady}
                   onClick={this.clickStopBtn}>
             Stop
           </button>
 
-          <button className="step-foward-btn"
-                  hidden={!this.state.isMidiReady}
+          <button hidden={!(this.state.isMidiReady && this.state.playbackRate === 1)}
                   onClick={this.clickStepForwardBtn}>
             {'>>'}
           </button>
 
-          <button className="step-backward-btn"
-                  hidden={!this.state.isMidiReady}
+          <button hidden={!(this.state.isMidiReady && this.state.playbackRate === 1)}
                   onClick={this.clickStepBackwardBtn}>
             {'<<'}
           </button>
+
+          <p className="progress-text" hidden={!this.state.isMidiReady}>
+            {this.progressText}
+          </p>
         </div>
 
         <input className="slider-control"
