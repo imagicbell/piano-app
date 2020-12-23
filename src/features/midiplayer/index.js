@@ -164,6 +164,10 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 
   onChangeMidi = (midi: Midi) => {
+    if (this.playState !== PLAYSTATE.STOP) {
+      Tone.Transport.stop();
+    }
+    
     if (!midi) {
       this.cleanSchedule();
     } else {

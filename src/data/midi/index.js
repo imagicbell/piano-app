@@ -1,5 +1,5 @@
 //@flow
-import ToneMidi from '@tonejs/midi';
+import { Midi as ToneMidi } from '@tonejs/midi';
 import { ReadMusicXml } from './musicxmlReader';
 import { parseHeader as parseHeader_musicxml, parseTracks as parseTracks_musicxml } from './musicxmlParser';
 import { parseHeader as parseHeader_tonemidi, parseTracks as parseTracks_tonemidi } from './tonemidiParser';
