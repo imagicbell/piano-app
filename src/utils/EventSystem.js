@@ -17,6 +17,22 @@ export default function EventSystemProvider({children}) {
 		}, []
 	)
 
+	const unregister = useCallback(
+		(eventName, cb) => {
+			if (eventRef.current[eventName]) {
+				eventRef.current[eventName] = eventRef.current[eventName].filter(e => e !== cb);
+			}
+		}, []
+	)
+
+	const unregisterAll = useCallback(
+		(eventName) => {
+			if (eventRef.current[eventName]) {
+				eventRef.current[eventName] = [];
+			}
+		}, []
+	)
+
 	const dispatch = useCallback(
 		(eventName, ...args) => {
 			if (eventRef.current[eventName]) {
@@ -25,5 +41,5 @@ export default function EventSystemProvider({children}) {
 		}, []
 	)
 
-	return <EventSystem.Provider value={{ register, dispatch }}>{children}</EventSystem.Provider>
+	return <EventSystem.Provider value={{ register, unregister, unregisterAll, dispatch }}>{children}</EventSystem.Provider>
 }

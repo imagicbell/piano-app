@@ -4,12 +4,12 @@ import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
 
 import keyboardReducer from 'features/keyboard/reducer';
-import rythmReducer from 'features/rythm/reducer';
 import musicInputReducer from 'features/musicInput/reducer';
+import playerReducer from 'features/midiplayer/reducer';
 
 const rootReducer = combineReducers({
   keyboard: keyboardReducer,
-  rythm: rythmReducer,
+  player: playerReducer,
   musicInput: musicInputReducer,
 })
 

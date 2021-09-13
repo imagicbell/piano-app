@@ -9,6 +9,7 @@ import Midi from 'data/midi';
 import 'utils/extension';
 import { NOTE_PREVIEW_TIME } from 'config/settings';
 import { EventSystem } from 'utils/EventSystem';
+import { pause, resume, stop, changeSpeed } from './action';
 
 const PIANO_SYNTH_NUM = 3;
 const PLAYSTATE = {
@@ -285,12 +286,12 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
       case "Pause":
         Tone.Transport.pause();
-        this.context.dispatch('pause');
+        this.props.dispatch(pause());
         break;
 
       case "Resume":
         Tone.Transport.start();
-        this.context.dispatch('resume');
+        this.props.dispatch(resume());
         break;
 
       default:
@@ -301,7 +302,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   clickStopBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     Tone.Transport.stop();
     Tone.Transport.emit("stop");
-    this.context.dispatch('stop');
+    this.props.dispatch(stop());
   }
 
   clickStepForwardBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -400,6 +401,8 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       ...this.state,
       playbackRate: curPlaybackRate
     });
+
+    this.props.dispatch(changeSpeed(curPlaybackRate));
   }
 
   render() {
@@ -442,7 +445,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
           <input type="range" min="0.1" max="4" step="0.1" 
                  disabled={!this.state.isMidiReady}
                  value={this.state.playbackRate} 
-                 onChange={this.onChangePlaybackRate}/>
+                 onChange={this.onChangePlaybackRate} />
           <span>{`BPM:  ${Tone.Transport.bpm.value.toFixed()}`}</span>
         </div>
 

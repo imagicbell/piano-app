@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { connect } from 'react-redux';
 import Track from './Track';
 import Canvas from './Canvas';
 import { notes, CalcNotePositions } from 'config/notes';
@@ -6,12 +7,11 @@ import { useEventSystem } from 'utils/EventSystem';
 import './style.css';
 
 
-export default function Rythmboard({ previewKeys, dispatch }) {
+function Rythmboard({ playState, speed }) {
 	const trackList = useRef(null);
 	const canvasRef = useRef(null);
 	const [size, setSize] = useState({width: 0, height: 0});
 	const eventSystem = useEventSystem();
-	const [paused, setPaused] = useState(false);
 
 	const handleResize = useCallback(() => {
 		if (!canvasRef.current) {
@@ -49,26 +49,28 @@ export default function Rythmboard({ previewKeys, dispatch }) {
 		window.addEventListener('resize', handleResize);	
 		handleResize();
 
-		eventSystem.register('preview_key', (ansi, duration) => {
+		const onPreview = (ansi, duration) => {
 			let index = notes.findIndex(note => note.ansi === ansi);
-			trackList.current[index].addDrop(duration);
-		})
+			trackList.current[index].addDrop(duration, speed);
+		};
 
-		eventSystem.register('pause', () => setPaused(true));
-		eventSystem.register('resume', () => setPaused(false));
-		eventSystem.register('stop', () => {
+		eventSystem.register('preview_key', onPreview);
+		return () => eventSystem.unregister('preview_key', onPreview);
+	}, [handleResize, eventSystem, speed]);
+
+	useEffect(() => {
+		if (playState === 'stopped') {
 			if (trackList.current) {
 				trackList.current.forEach(track => track.clean());
 			}
-		});
-		
-	}, [handleResize, eventSystem]);
+		}
+	}, [playState])
 
 	const draw = useCallback((ctx, deltaTime) => {
 		if (trackList.current) {
-			trackList.current.forEach(track => track.draw(ctx, paused ? 0 : deltaTime));
+			trackList.current.forEach(track => track.draw(ctx, playState === 'paused' ? 0 : deltaTime));
 		}
-	}, [paused]);
+	}, [playState]);
 
 	return (
 		<div className="rythmboard" ref={canvasRef}>
@@ -81,3 +83,10 @@ export default function Rythmboard({ previewKeys, dispatch }) {
 		</div>
 	)
 }
+
+export default connect(
+	state => ({
+		playState: state.player.playState,
+		speed: state.player.speed
+	})
+)(Rythmboard)

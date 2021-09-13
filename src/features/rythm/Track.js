@@ -24,7 +24,7 @@ export default class Track {
 		this.drops = [];
 	}
 
-	addDrop(duration) {
+	addDrop(duration, speed) {
 		let type = duration > RYTHM_THRESHOLD ? RYTHM_LONG : RYTHM_SHORT;
 		this.drops.push(new Drop({
 			type,
@@ -33,7 +33,7 @@ export default class Track {
 			// y: DROP_HEIGHT,
 			radius: this.size,
 			length: type === RYTHM_LONG ? duration*DROP_SPEED : 0,
-			speed: DROP_SPEED,
+			speed: DROP_SPEED*speed,
 			color: this.noteType === 'white' ? LIGHT_COLORS[0] : LIGHT_COLORS[6],
 		}));
 	}
