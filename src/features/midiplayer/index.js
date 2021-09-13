@@ -4,9 +4,11 @@ import Tone from 'tone';
 import SampleLibrary from 'libs/Tonejs-Instruments';
 import { Sleep } from 'utils/timer';
 import { triggerKey } from 'features/keyboard/action';
+import { previewKey } from 'features/rythm/action';
 import styles from './style.scss';
 import Midi from 'data/midi';
 import 'utils/extension';
+import { NOTE_PREVIEW_TIME } from 'config/settings';
 
 const PIANO_SYNTH_NUM = 3;
 const PLAYSTATE = {
@@ -45,7 +47,6 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   }
 
   pianoSynths: any[] = [];
-  noteEvents: Tone.Event[] = [];
 
   frameId: Number;
   lastPlayState: String = PLAYSTATE.STOP;
@@ -58,6 +59,10 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     return this.props.midi.duration;
   }
 
+  get timeOffset() {
+    return NOTE_PREVIEW_TIME;
+  }
+  
   get currentNotes(): MidiNote[] {
     let notes = [];
     this.state.playNoteIndexes.forEach((noteIndex, trackIndex) => {
@@ -191,12 +196,10 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       if (tempoIndex === 0) {
         Tone.Transport.bpm.value = tempo.bpm;
       } else {
-        const e = new Tone.Event(time => {
+        Tone.Transport.schedule(time => {
           Tone.Transport.bpm.value = tempo.bpm;
           this.setState({ ...this.state, originBpm: tempo.bpm });
-        });
-        e.start(tempo.time);
-        this.noteEvents.push(e);
+        }, tempo.time + this.timeOffset);
       }
     });
 
@@ -204,18 +207,25 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
       if (tsIndex === 0) {
         Tone.Transport.timeSignature = [ts.beats, ts.beatType];
       } else {
-        const e = new Tone.Event(time => Tone.Transport.timeSignature = [ts.beats, ts.beatType]);
-        e.start(ts.time);
-        this.noteEvents.push(e);
+        Tone.Transport.schedule(time => {
+					Tone.Transport.timeSignature = [ts.beats, ts.beatType];
+				}, ts.time + this.timeOffset);
       }
     });
 
     midi.tracks.forEach((track, trackIndex) => {
       const synth = this.pianoSynths[trackIndex];
       track.notes.forEach((note, noteIndex) => {
-        const e = new Tone.Event(time => {
+        //preview
+				Tone.Transport.schedule(time => {
+          Tone.Draw.schedule(() => {
+            this.props.dispatch(previewKey(note.name, note.duration));
+          }, time);
+				}, note.time);
+
+        //play
+        Tone.Transport.schedule(time => {
           synth.triggerAttackRelease(note.name, note.duration, time, note.velocity);
-          this.props.dispatch(triggerKey(note.name, note.duration));
           
           const playNoteIndexes = this.state.playNoteIndexes;
           playNoteIndexes[trackIndex] = noteIndex;
@@ -223,19 +233,19 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
             ...this.state,
             playNoteIndexes,
           });
-        });
-        e.start(note.time);
-        this.noteEvents.push(e);
+
+					Tone.Draw.schedule(() => {
+            this.props.dispatch(triggerKey(note.name, note.duration));
+          }, time);
+				}, note.time + this.timeOffset);
       });
     });
 
-    const finishEvent = new Tone.Event(time => {
-      console.log("midiplayer: finish play");
-      Tone.Transport.stop();
+    Tone.Transport.schedule(time => {
+			console.log("midiplayer: finish play");
+			Tone.Transport.stop();
       Tone.Transport.emit("stop");
-    });
-    finishEvent.start(midi.duration);
-    this.noteEvents.push(finishEvent);
+		}, midi.duration + this.timeOffset);
 
     this.setState({
       ...this.state,
@@ -249,8 +259,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   cleanSchedule = () => {
     this.pianoSynths.forEach(synth => synth.releaseAll());
     this.reduceSynths();
-
-    this.noteEvents.forEach(e => e.dispose());
+    
     Tone.Transport.cancel();
 
     this.setState({

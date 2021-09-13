@@ -98,3 +98,31 @@ export const notes : NoteType[] = [
   {midi: 108, ansi: 'C8', type: 'white'},
 ]
 
+export function CalcNotePositions() {
+  let whiteKeys = notes.filter(note => note.type === 'white');
+  let whiteWidth = 100 / whiteKeys.length;
+  let blackWidth = whiteWidth * 2/3;
+
+  let whiteLeft = 0;
+  let blackLeft = whiteWidth * 2/3;
+  
+  let leftPositions = notes.map((note, index) => {
+    if (index > 1) {
+      if (note.type === 'white') {
+        whiteLeft += whiteWidth;
+      } else {
+        blackLeft += whiteWidth;
+        if (note.ansi[0] === 'C' || note.ansi[0] === 'F') {
+          blackLeft += whiteWidth; 
+        }
+      }
+    }
+    return { ansi: note.ansi, left: note.type === 'white' ? whiteLeft : blackLeft };
+  });
+
+  return {
+    whiteWidth,
+    blackWidth,
+    leftPositions,
+  }
+}

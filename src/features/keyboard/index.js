@@ -2,11 +2,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
-import styles from './style.css';
-import { type NoteType, notes } from 'config/notes';
+import './style.css';
+import { type NoteType, notes, CalcNotePositions } from 'config/notes';
 import { type ActiveKey } from './type';
-
-const WHITE_KEY_WIDTH = 1.923;
 
 type KeyboardProps = {
   playKey: (note: string) => void,
@@ -17,31 +15,28 @@ type KeyboardProps = {
 class Keyboard extends React.Component<KeyboardProps> {
   whiteKeys: NoteType[];
   blackKeys: NoteType[];
+  notePositions: any;
 
   constructor(props: KeyboardProps) {
     super(props);
 
     this.whiteKeys = notes.filter(note => note.type === 'white');
     this.blackKeys = notes.filter(note => note.type === 'black');
+
+    this.notePositions = CalcNotePositions();
   }
 
-  whiteKeyStyle = {
-    width: `${WHITE_KEY_WIDTH}%`,
+  whiteKeyStyle() {
+    return {
+      width: `${this.notePositions.whiteWidth}%`,
+    }
   };
 
-  blackKeyLeft = WHITE_KEY_WIDTH * 2/3;
-  blackKeyStyle = (note: NoteType, index: number) => {
-    if (index > 0) {
-      this.blackKeyLeft += WHITE_KEY_WIDTH;
-    }
-
-    if (note.ansi[0] === 'C' || note.ansi[0] === 'F') {
-      this.blackKeyLeft += WHITE_KEY_WIDTH; 
-    }
-
+  blackKeyStyle(note: NoteType, index: number) {
+    let pos = this.notePositions.leftPositions.find(lp => lp.ansi === note.ansi);
     return {
-      width: `${WHITE_KEY_WIDTH * 2/3}%`,
-      left: `${this.blackKeyLeft}%`,
+      width: `${this.notePositions.blackWidth}%`,
+      left: `${pos.left}%`,
     }
   }
 
@@ -54,8 +49,6 @@ class Keyboard extends React.Component<KeyboardProps> {
   }
 
   render() {
-    this.blackKeyLeft = WHITE_KEY_WIDTH * 2/3;
-    
     return (
       <div className="keyboard-container">
         <div className="key-wrap">
@@ -66,7 +59,7 @@ class Keyboard extends React.Component<KeyboardProps> {
               'key-white-active': this.props.activeKeys.findIndex(k => k.name === key.ansi) >= 0
             });
             return (
-              <div key={key.midi} className={className} style={this.whiteKeyStyle}
+              <div key={key.midi} className={className} style={this.whiteKeyStyle()}
                   onPointerDown={e => this.pressKey(key)} onPointerUp={e => this.releaseKey(key)}>
                   <span className="key-white-text">{key.ansi}</span> 
               </div>
