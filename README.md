@@ -1,4 +1,6 @@
-This is a tiny project that aims to help myself learn piano. It provides a virtual piano and the ability to play midi and musicxml files. 
+This is a tiny project that aims to help myself learn piano. It provides a virtual piano, automatic play of midi and musicxml files, preview of next notes, and display of music sheet.
+
+[Youtube link](https://youtu.be/wtuBd7RBzT4).
 
 ### How to Run
 
