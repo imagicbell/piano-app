@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { connect } from 'react-redux';
 import Track from './Track';
 import Canvas from './Canvas';
 import { notes, CalcNotePositions } from 'config/notes';
-import { cleanPreview } from './action';
+import { useEventSystem } from 'utils/EventSystem';
 import './style.css';
 
-function Rythmboard({ previewKeys, dispatch }) {
+
+export default function Rythmboard({ previewKeys, dispatch }) {
 	const trackList = useRef(null);
 	const canvasRef = useRef(null);
 	const [size, setSize] = useState({width: 0, height: 0});
+	const eventSystem = useEventSystem();
+	const [paused, setPaused] = useState(false);
 
 	const handleResize = useCallback(() => {
 		if (!canvasRef.current) {
@@ -46,23 +48,27 @@ function Rythmboard({ previewKeys, dispatch }) {
 	useEffect(() => {
 		window.addEventListener('resize', handleResize);	
 		handleResize();
-	}, [handleResize]);
 
-	useEffect(() => {
-		if (previewKeys.length > 0) {
-			previewKeys.forEach(keyInfo => {
-				let index = notes.findIndex(note => note.ansi === keyInfo.name);
-				trackList.current[index].addDrop(keyInfo.duration);
-			});
-			dispatch(cleanPreview());
-		}
-	}, [previewKeys, dispatch])
+		eventSystem.register('preview_key', (ansi, duration) => {
+			let index = notes.findIndex(note => note.ansi === ansi);
+			trackList.current[index].addDrop(duration);
+		})
+
+		eventSystem.register('pause', () => setPaused(true));
+		eventSystem.register('resume', () => setPaused(false));
+		eventSystem.register('stop', () => {
+			if (trackList.current) {
+				trackList.current.forEach(track => track.clean());
+			}
+		});
+		
+	}, [handleResize, eventSystem]);
 
 	const draw = useCallback((ctx, deltaTime) => {
 		if (trackList.current) {
-			trackList.current.forEach(track => track.draw(ctx, deltaTime));
+			trackList.current.forEach(track => track.draw(ctx, paused ? 0 : deltaTime));
 		}
-	}, []);
+	}, [paused]);
 
 	return (
 		<div className="rythmboard" ref={canvasRef}>
@@ -75,9 +81,3 @@ function Rythmboard({ previewKeys, dispatch }) {
 		</div>
 	)
 }
-
-export default connect(
-  state => ({
-    previewKeys: state.rythm.previewKeys,
-  })
-)(Rythmboard);

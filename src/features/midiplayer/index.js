@@ -4,11 +4,11 @@ import Tone from 'tone';
 import SampleLibrary from 'libs/Tonejs-Instruments';
 import { Sleep } from 'utils/timer';
 import { triggerKey } from 'features/keyboard/action';
-import { previewKey } from 'features/rythm/action';
-import styles from './style.scss';
+import './style.scss';
 import Midi from 'data/midi';
 import 'utils/extension';
 import { NOTE_PREVIEW_TIME } from 'config/settings';
+import { EventSystem } from 'utils/EventSystem';
 
 const PIANO_SYNTH_NUM = 3;
 const PLAYSTATE = {
@@ -219,7 +219,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
         //preview
 				Tone.Transport.schedule(time => {
           Tone.Draw.schedule(() => {
-            this.props.dispatch(previewKey(note.name, note.duration));
+            this.context.dispatch('preview_key', note.name, note.duration);
           }, time);
 				}, note.time);
 
@@ -285,10 +285,12 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
 
       case "Pause":
         Tone.Transport.pause();
+        this.context.dispatch('pause');
         break;
 
       case "Resume":
         Tone.Transport.start();
+        this.context.dispatch('resume');
         break;
 
       default:
@@ -299,6 +301,7 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
   clickStopBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     Tone.Transport.stop();
     Tone.Transport.emit("stop");
+    this.context.dispatch('stop');
   }
 
   clickStepForwardBtn = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -447,6 +450,8 @@ class Midiplayer extends React.Component<MidiplayerProps, MidiPlayerState> {
     )
   }
 }
+
+Midiplayer.contextType = EventSystem;
 
 export default connect(
   state => ({
